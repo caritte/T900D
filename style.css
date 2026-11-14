@@ -100,5 +100,9 @@ summary{cursor:pointer}
   #bar{padding-top:4px;padding-bottom:4px}
   .view{padding-top:8px}
   button{min-height:40px}.big-btns button{min-height:48px}
-  #run .metrics div{padding:6px 4px}
+  #run .metrics{gap:6px;margin-bottom:6px}#run .metrics div{padding:4px}#run .metrics b{font-size:clamp(20px,6.5vh,30px)}
+  #run .big-btns{margin-top:6px}#run .big-btns button{min-height:44px;font-size:16px}
+  #run .adj{margin-top:6px}#run .adj button{min-height:36px;padding:4px 12px}
+  #run .now{margin-top:6px;padding:6px 12px}#run .now b{font-size:30px}#r-info{margin:4px 0}
+  #run .chart.tall{height:max(100px,calc(100dvh - 215px))}
 }
