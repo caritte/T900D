@@ -1,6 +1,12 @@
 :root{--bg:#0b0d12;--card:#161a22;--card2:#1e232e;--line:#2a3040;--txt:#eef1f6;--mut:#8d96a8;
   --in:#4c8dff;--sp:#ffb020;--ok:#2fd27a;--bad:#ff5a5f;--r:16px}
+/* Zones occupées par les barres système (heure, navigation). Dans l'APK l'appli s'affiche bord à bord :
+   Capacitor fournit --safe-area-inset-*, les navigateurs récents env(). */
+:root{--st:var(--safe-area-inset-top,env(safe-area-inset-top,0px));--sb:var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px));
+  --sl:var(--safe-area-inset-left,env(safe-area-inset-left,0px));--sr:var(--safe-area-inset-right,env(safe-area-inset-right,0px))}
 *{box-sizing:border-box}
+body{padding-top:var(--st);padding-bottom:var(--sb)}
+body::before{content:"";position:fixed;z-index:10;top:0;left:0;right:0;height:var(--st);background:#000} /* bandeau sous la barre d'état */
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   -webkit-tap-highlight-color:transparent;overscroll-behavior-y:none}
@@ -10,8 +16,8 @@ p{margin:8px 0}
 [hidden]{display:none!important}
 
 /* Barre du haut */
-#bar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;
-  padding:8px max(14px,env(safe-area-inset-right)) 8px max(14px,env(safe-area-inset-left));
+#bar{position:sticky;top:var(--st);z-index:5;display:flex;align-items:center;gap:10px;
+  padding:8px calc(14px + var(--sr)) 8px calc(14px + var(--sl));
   background:rgba(11,13,18,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
 .logo{font-size:18px;letter-spacing:.04em;background:linear-gradient(90deg,var(--in),var(--sp));-webkit-background-clip:text;background-clip:text;color:transparent}
 #status{flex:1;min-width:0;color:var(--mut);font-size:14px;display:flex;align-items:center;gap:6px}
@@ -20,7 +26,7 @@ p{margin:8px 0}
 #dot{width:9px;height:9px;border-radius:50%;background:var(--bad)}
 #dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
 
-.view{padding:12px max(14px,env(safe-area-inset-right)) 24px max(14px,env(safe-area-inset-left));max-width:1100px;margin:auto}
+.view{padding:12px calc(14px + var(--sr)) 24px calc(14px + var(--sl));max-width:1100px;margin:auto}
 .head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .muted{color:var(--mut);font-size:14px}
 .sp{color:var(--sp)} .in{color:var(--in)} .hr{color:var(--bad)}
@@ -89,8 +95,8 @@ summary{cursor:pointer}
   .tile{min-height:92px}
   .metrics.six{grid-template-columns:repeat(6,1fr)}
   #home .metrics b{font-size:22px}
-  .chart.tall{height:max(130px,calc(100dvh - 244px))}
-  .chart.big{height:max(170px,calc(100dvh - 190px))}
+  .chart.tall{height:max(130px,calc(100dvh - 244px - var(--st) - var(--sb)))}
+  .chart.big{height:max(170px,calc(100dvh - 190px - var(--st) - var(--sb)))}
   .head{margin-bottom:6px}
   #run .metrics{margin-top:0}#run .metrics b{font-size:clamp(24px,7.5vh,44px)}
   .hint{display:none}
@@ -104,5 +110,5 @@ summary{cursor:pointer}
   #run .big-btns{margin-top:6px}#run .big-btns button{min-height:44px;font-size:16px}
   #run .adj{margin-top:6px}#run .adj button{min-height:36px;padding:4px 12px}
   #run .now{margin-top:6px;padding:6px 12px}#run .now b{font-size:30px}#r-info{margin:4px 0}
-  #run .chart.tall{height:max(100px,calc(100dvh - 215px))}
+  #run .chart.tall{height:max(100px,calc(100dvh - 215px - var(--st) - var(--sb)))}
 }
