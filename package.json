@@ -1,0 +1,24 @@
+{
+  "name": "t900d",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test/run.mjs",
+    "build:native": "node scripts/build-native.mjs",
+    "sync": "npm run build:native && cap sync android"
+  },
+  "dependencies": {
+    "@capacitor-community/bluetooth-le": "^8.3.0",
+    "@capacitor-community/keep-awake": "^8.0.1",
+    "@capacitor-community/text-to-speech": "^8.0.2",
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/share": "^8.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.2",
+    "esbuild": "^0.28.2"
+  }
+}

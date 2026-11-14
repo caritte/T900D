@@ -1,5 +1,6 @@
-// Client FTMS (Fitness Machine Service) via Web Bluetooth.
-const UUID = {
+// Protocole FTMS (Fitness Machine Service) : décodage, commandes, et client Web Bluetooth.
+// Le client natif Android (native/index.js) réutilise TreadmillBase.
+export const UUID = {
   service: 0x1826,
   treadmillData: 0x2acd,
   controlPoint: 0x2ad9,
@@ -36,21 +37,85 @@ export const cmd = {
   incline: (pct) => { const v = Math.round(pct * 10) & 0xffff; return new Uint8Array([0x03, v & 0xff, v >> 8]); },
 };
 
-export class Treadmill {
+const hex = (dv) => [...new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength)].map((b) => b.toString(16).padStart(2, '0')).join(' ');
+
+// Partie commune aux transports : file d'écriture, commandes, traitement des notifications,
+// reconnexion automatique. Une sous-classe fournit connected, pick(), setup(), send(bytes), drop().
+export class TreadmillBase {
   constructor({ onData, onLog, onDisconnect, onReconnect, onStatus } = {}) {
-    this.onData = onData || (() => {});
-    this.log = onLog || (() => {});
-    this.onDisconnect = onDisconnect || (() => {});
-    this.onReconnect = onReconnect || (() => {});
-    this.onStatus = onStatus || (() => {});
+    const nop = () => {};
+    this.onData = onData || nop; this.log = onLog || nop; this.onDisconnect = onDisconnect || nop;
+    this.onReconnect = onReconnect || nop; this.onStatus = onStatus || nop;
     this.rx = 0;
-    this.listened = new WeakSet();
     this.queue = Promise.resolve(); // le Control Point n'accepte qu'une écriture à la fois
   }
 
-  get connected() { return !!this.server?.connected; }
-
   async connect() {
+    await this.pick();
+    this.manual = false;
+    await this.setup();
+    this.log('Connecté à ' + this.device.name);
+    await this.write(cmd.requestControl());
+  }
+
+  disconnect() { this.manual = true; this.drop(); }
+
+  // Perte de liaison : on réessaie indéfiniment, sauf déconnexion demandée.
+  lost() {
+    this.onDisconnect();
+    if (!this.manual && !this.reconnecting) this.#retry(0);
+  }
+
+  async #retry(n) {
+    if (this.manual) { this.reconnecting = false; return; }
+    this.reconnecting = true;
+    try {
+      await this.setup();
+      this.reconnecting = false;
+      this.log('Reconnecté');
+      await this.write(cmd.requestControl());
+      this.onReconnect();
+    } catch (e) {
+      this.log('Reconnexion échouée : ' + e.message);
+      setTimeout(() => this.#retry(n + 1), Math.min(10000, 1000 * 2 ** n));
+    }
+  }
+
+  handleData(dv) {
+    if (this.rx++ % 40 === 0) this.log('RX ' + hex(dv));
+    this.onData(parseTreadmillData(dv));
+  }
+  handleCp(dv) { // [0x80, opcode, résultat]
+    this.log(`CP réponse op=0x${dv.getUint8(1).toString(16)} résultat=${dv.getUint8(2)} (1=OK)`);
+  }
+  handleStatus(dv) { // signale notamment les appuis Start/Stop sur la console
+    this.log('Statut ' + hex(dv));
+    this.onStatus(dv.getUint8(0), dv.byteLength > 1 ? dv.getUint8(1) : undefined);
+  }
+
+  write(bytes) {
+    if (!this.connected) return Promise.resolve();
+    this.queue = this.queue.then(async () => {
+      this.log('TX ' + hex(new DataView(bytes.buffer)));
+      await this.send(bytes);
+    }).catch((e) => this.log('Erreur écriture : ' + e.message));
+    return this.queue;
+  }
+
+  start() { return this.write(cmd.start()); }
+  stop() { return this.write(cmd.stop()); }
+  pause() { return this.write(cmd.pause()); }
+  setSpeed(kmh) { return this.write(cmd.speed(kmh)); }
+  setIncline(pct) { return this.write(cmd.incline(pct)); }
+}
+
+// Transport Web Bluetooth (navigateur / PWA).
+export class Treadmill extends TreadmillBase {
+  listened = new WeakSet();
+
+  get connected() { return !!this.server?.connected && !!this.cp; }
+
+  async pick() {
     this.device = await navigator.bluetooth.requestDevice({
       filters: [{ services: [UUID.service] }],
       optionalServices: [UUID.service],
@@ -62,87 +127,25 @@ export class Treadmill {
     // Un seul écouteur par appareil, même après une déconnexion manuelle suivie d'une reconnexion.
     if (!this.listened.has(this.device)) {
       this.listened.add(this.device);
-      this.device.addEventListener('gattserverdisconnected', () => this.#lost());
-    }
-    this.manual = false;
-    await this.#setup();
-  }
-
-  // Perte de liaison : on réessaie indéfiniment (sans geste utilisateur, même appareil).
-  #lost() {
-    this.onDisconnect();
-    if (!this.manual && !this.reconnecting) this.#retry(0);
-  }
-
-  async #retry(n) {
-    if (this.manual) { this.reconnecting = false; return; }
-    this.reconnecting = true;
-    try {
-      await this.#setup();
-      this.reconnecting = false;
-      this.log('Reconnecté');
-      this.onReconnect();
-    } catch (e) {
-      this.log('Reconnexion échouée : ' + e.message);
-      setTimeout(() => this.#retry(n + 1), Math.min(10000, 1000 * 2 ** n));
+      this.device.addEventListener('gattserverdisconnected', () => this.lost());
     }
   }
 
-  async #setup() {
+  async setup() {
+    this.cp = null;
     this.server = await this.device.gatt.connect();
-    this.log('Connecté à ' + this.device.name);
-
-    const services = await this.server.getPrimaryServices();
-    this.log('Services : ' + services.map((s) => s.uuid).join(', '));
-
     const svc = await this.server.getPrimaryService(UUID.service); // échoue si pas FTMS
-    const data = await svc.getCharacteristic(UUID.treadmillData);
-    data.addEventListener('characteristicvaluechanged', (e) => {
-      if (this.rx++ % 40 === 0) this.log('RX ' + [...new Uint8Array(e.target.value.buffer)].map((b) => b.toString(16).padStart(2, '0')).join(' '));
-      this.onData(parseTreadmillData(e.target.value));
-    });
-    await data.startNotifications();
-
-    // Fitness Machine Status : signale notamment les appuis Start/Stop sur la console.
-    try {
-      const st = await svc.getCharacteristic(UUID.status);
-      st.addEventListener('characteristicvaluechanged', (e) => {
-        const v = new Uint8Array(e.target.value.buffer);
-        this.log('Statut ' + [...v].map((b) => b.toString(16).padStart(2, '0')).join(' '));
-        this.onStatus(v[0], v[1]);
-      });
-      await st.startNotifications();
-    } catch { this.log('Pas de caractéristique Statut'); }
-
-    this.cp = await svc.getCharacteristic(UUID.controlPoint);
-    this.cp.addEventListener('characteristicvaluechanged', (e) => {
-      const v = new Uint8Array(e.target.value.buffer); // [0x80, opcode, résultat]
-      this.log(`CP réponse op=0x${v[1]?.toString(16)} résultat=${v[2]} (1=OK)`);
-    });
-    await this.cp.startNotifications();
-    await this.write(cmd.requestControl());
-
-    for (const [name, uuid] of [['vitesse', UUID.speedRange], ['inclinaison', UUID.inclineRange]]) {
-      try {
-        const v = await (await svc.getCharacteristic(uuid)).readValue();
-        this.log(`Plage ${name} : min=${v.getUint16(0, true)} max=${v.getUint16(2, true)} pas=${v.getUint16(4, true)}`);
-      } catch { /* optionnel */ }
-    }
+    const listen = async (uuid, fn) => {
+      const c = await svc.getCharacteristic(uuid);
+      c.addEventListener('characteristicvaluechanged', (e) => fn(e.target.value));
+      await c.startNotifications();
+      return c;
+    };
+    await listen(UUID.treadmillData, (v) => this.handleData(v));
+    await listen(UUID.status, (v) => this.handleStatus(v)).catch(() => this.log('Pas de caractéristique Statut'));
+    this.cp = await listen(UUID.controlPoint, (v) => this.handleCp(v));
   }
 
-  write(bytes) {
-    if (!this.connected || !this.cp) return Promise.resolve();
-    this.queue = this.queue.then(async () => {
-      this.log('TX ' + [...bytes].map((b) => b.toString(16).padStart(2, '0')).join(' '));
-      await this.cp.writeValueWithResponse(bytes);
-    }).catch((e) => this.log('Erreur écriture : ' + e.message));
-    return this.queue;
-  }
-
-  start() { return this.write(cmd.start()); }
-  stop() { return this.write(cmd.stop()); }
-  pause() { return this.write(cmd.pause()); }
-  setSpeed(kmh) { return this.write(cmd.speed(kmh)); }
-  setIncline(pct) { return this.write(cmd.incline(pct)); }
-  disconnect() { this.manual = true; this.device?.gatt?.disconnect(); }
+  send(bytes) { return this.cp.writeValueWithResponse(bytes); }
+  drop() { this.device?.gatt?.disconnect(); }
 }

@@ -8,6 +8,9 @@ import { Recorder } from './recorder.js';
 import { putSession, allSessions, delSession } from './db.js';
 import { beep, say, unlock } from './audio.js';
 
+// Dans l'APK Android (Capacitor), le Bluetooth, la voix, l'anti-veille et l'export passent par des plugins natifs.
+const native = window.Capacitor?.isNativePlatform?.() ? await import('../native.bundle.js') : null;
+
 const $ = (id) => document.getElementById(id);
 const fmt = (s) => { s = Math.round(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), r = s % 60;
   return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(r).padStart(2, '0'); };
@@ -40,7 +43,7 @@ function onData(d) {
 async function ensureConnected(quiet = false) {
   if (tm?.connected) return true;
   try {
-    tm ??= new (demo ? DemoTreadmill : Treadmill)({
+    tm ??= new (demo ? DemoTreadmill : native ? native.NativeTreadmill : Treadmill)({
       onLog: log, onData,
       onStatus: (op) => { if (op === 0x04) consoleStart(); if (op === 0x02) consolePause(); },
       // Le tapis continue de tourner sans liaison : la séance continue aussi, on resynchronise au retour.
@@ -52,7 +55,11 @@ async function ensureConnected(quiet = false) {
     return true;
   } catch (e) { log('Erreur : ' + e.message); if (!quiet) alert('Connexion impossible : ' + e.message); return false; }
 }
-const keepAwake = async () => { try { wake = await navigator.wakeLock?.request('screen'); } catch { /* ignoré */ } };
+const keepAwake = async () => {
+  if (native) return native.keepAwake();
+  try { wake = await navigator.wakeLock?.request('screen'); } catch { /* ignoré */ }
+};
+const allowSleep = () => (native ? native.allowSleep() : wake?.release?.());
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && run?.runner?.running) keepAwake(); });
 $('connect').onclick = () => ensureConnected();
 $('disconnect').onclick = () => {
@@ -153,8 +160,10 @@ $('prefs').addEventListener('click', (e) => {
 });
 $('new').onclick = () => openEdit(null);
 $('export').onclick = async () => {
+  const json = JSON.stringify({ workouts, vma, sessions: await mySessions() });
+  if (native) return native.shareFile('t900d-sauvegarde.json', json).catch((e) => alert('Export impossible : ' + e.message));
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([JSON.stringify({ workouts, vma, sessions: await mySessions() })], { type: 'application/json' }));
+  a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
   a.download = 't900d-sauvegarde.json'; a.click();
 };
 $('import').onclick = () => $('file').click();
@@ -228,7 +237,7 @@ for (const k of ['beep', 'voice']) {
   $('p-' + k).onchange = (e) => { prefs[k] = e.target.checked; localStorage[k] = prefs[k] ? '1' : '0'; };
 }
 const bip = (f, ms) => prefs.beep && beep(f, ms);
-function speak(t) { if (prefs.voice) say(t); }
+function speak(t) { if (prefs.voice) (native?.speak ?? say)(t); }
 const fr = (n) => String(n).replace('.', ',');
 const spoken = (s) => `${fr(s.speed)} kilomètres heure, pente ${fr(s.incline)} pour cent`;
 const spokenDur = (d) => [d >= 60 && `${Math.floor(d / 60)} minute${d >= 120 ? 's' : ''}`, d % 60 && `${d % 60} secondes`].filter(Boolean).join(' ');
@@ -302,7 +311,7 @@ function resync() {
 async function finishRun(completed) {
   const rec = run.rec;
   run.runner?.pause(); run.runner = null; run.snap = null; run.rec = null; run.cue = {};
-  wake?.release?.(); setBtns('idle'); $('r-now').hidden = true;
+  allowSleep(); setBtns('idle'); $('r-now').hidden = true;
   if (rec && rec.t > 10) await putSession({ ...rec.summary(completed), user: currentUser() });
   drawRun();
   $('r-info').textContent = rec && rec.t > 10
@@ -401,4 +410,4 @@ function openSess(x) {
 $('s-del').onclick = async () => { if (confirm('Supprimer cette séance de l\'historique ?')) { await delSession(sess.id); history.back(); } };
 
 renderHome(); setStatus();
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+if (!native && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

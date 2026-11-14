@@ -1,0 +1,33 @@
+# Construit l'APK Android (Capacitor) et le publie dans la release « apk ».
+# Téléchargement : https://github.com/<owner>/<repo>/releases/latest/download/t900d.apk
+name: APK Android
+on:
+  push:
+    branches: [main, claude/domyos-t900d-app-397ysr]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - run: npm ci
+      - run: npm test
+      - run: npm run sync
+      - name: Gradle
+        working-directory: android
+        run: ./gradlew assembleDebug -PversionCode=${{ github.run_number }} --no-daemon
+      - run: cp android/app/build/outputs/apk/debug/app-debug.apk t900d.apk
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk
+          target_commitish: ${{ github.sha }}
+          name: T900D – APK Android (build ${{ github.run_number }})
+          body: Télécharge `t900d.apk` sur ton téléphone Android puis ouvre-le pour installer ou mettre à jour l'appli.
+          files: t900d.apk
+          make_latest: true
