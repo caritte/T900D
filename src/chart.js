@@ -14,7 +14,7 @@ const el = (name, attrs, parent) => {
 };
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
-export function drawChart(svg, steps, { selected = -1, cursor = null, editable = false, compact = false, onSelect, onChange } = {}) {
+export function drawChart(svg, steps, { selected = -1, cursor = null, editable = false, compact = false, flat = false, onSelect, onChange } = {}) {
   const W = compact ? 300 : svg.clientWidth || 320;
   const H = compact ? 60 : svg.clientHeight || 240;
   const m = compact ? { l: 0, r: 0, t: 2, b: 2 } : { l: 30, r: 34, t: 16, b: 22 };
@@ -51,7 +51,7 @@ export function drawChart(svg, steps, { selected = -1, cursor = null, editable =
     if (onSelect) hit.addEventListener('click', () => onSelect(i));
     el('rect', {
       x: x0, y: yI(s.incline), width: Math.max(0, x1 - x0), height: bottom - yI(s.incline),
-      fill: C.incline, opacity: i === selected ? 0.85 : 0.45, stroke: '#0f1115', 'stroke-width': compact ? 0 : 1, 'pointer-events': 'none',
+      fill: C.incline, opacity: i === selected ? 0.85 : 0.45, stroke: '#0f1115', 'stroke-width': compact || flat ? 0 : 1, 'pointer-events': 'none',
     }, svg);
   });
 
@@ -81,4 +81,15 @@ export function drawChart(svg, steps, { selected = -1, cursor = null, editable =
     const hs = el('circle', { cx: cx + 14, cy: yS(s.speed), r: 12, fill: C.speed, stroke: '#fff', 'stroke-width': 2, style: 'cursor:ns-resize' }, svg);
     hs.addEventListener('pointerdown', drag('speed', yS, LIMITS.speed.max, LIMITS.speed));
   }
+  return { xOf, m, ph };
+}
+
+// Courbe d'une séance réalisée. samples : [t, vitesse, pente, fc] ; la FC est tracée en rouge (40–200 bpm).
+export function drawSession(svg, samples) {
+  const steps = samples.map((s, i) => ({ duration: s[0] - (i ? samples[i - 1][0] : 0) || 1, speed: s[1], incline: s[2] }));
+  const g = drawChart(svg, steps.length ? steps : [{ duration: 1, speed: 0, incline: 0 }], { flat: true });
+  const hr = samples.filter((s) => s[3] > 0);
+  if (hr.length < 2) return;
+  const y = (v) => g.m.t + g.ph * (1 - clamp((v - 40) / 160, 0, 1));
+  el('path', { d: hr.map((s, i) => `${i ? 'L' : 'M'}${g.xOf(s[0])} ${y(s[3])}`).join(''), fill: 'none', stroke: '#ef4444', 'stroke-width': 2 }, svg);
 }

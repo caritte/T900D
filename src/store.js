@@ -19,5 +19,3 @@ export function loadWorkouts() {
   return list;
 }
 export const saveWorkouts = (l) => set('workouts', l);
-export const loadHistory = () => get('history', []);
-export const addHistory = (h) => { const l = loadHistory(); l.push(h); set('history', l.slice(-100)); };

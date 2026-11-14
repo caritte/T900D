@@ -14,7 +14,7 @@ export class DemoTreadmill {
     const s = this.s, mv = (a, b, k) => a + Math.max(-k, Math.min(k, b - a));
     s.speed = mv(s.speed, s.tSpeed, 1); s.incline = mv(s.incline, s.tIncline, 1);
     if (s.running) { s.elapsed++; s.dist += s.speed / 3.6; }
-    this.onData({ speed: s.speed, incline: s.incline, distance: Math.round(s.dist), elapsed: s.elapsed, hr: 0 });
+    this.onData({ speed: s.speed, incline: s.incline, distance: Math.round(s.dist), elapsed: s.elapsed, hr: Math.round(80 + s.speed * 6), energy: Math.round(s.dist / 15) });
   }
   start() { this.s.running = true; if (!this.s.tSpeed) this.s.tSpeed = 1; }
   stop() { this.s.running = false; this.s.tSpeed = 0; }

@@ -19,13 +19,13 @@
 <main id="home" class="view">
   <div class="row"><h2>Mes séances</h2><button id="new" class="primary">+ Nouvelle</button></div>
   <div id="list"></div>
-  <h3>Historique</h3>
-  <ul id="history"></ul>
+  <div class="row"><button id="free" class="ghost">Course libre</button><button id="hist-open" class="ghost">Historique &amp; stats</button></div>
   <details>
     <summary>Outils</summary>
     <p><button id="export" class="ghost">Exporter</button>
        <button id="import" class="ghost">Importer</button>
        <input id="file" type="file" accept="application/json" hidden></p>
+    <p><label><input type="checkbox" id="p-beep"> Bips</label> &nbsp; <label><input type="checkbox" id="p-voice"> Annonces vocales</label></p>
     <pre id="log"></pre>
   </details>
 </main>
@@ -59,8 +59,10 @@
   <div class="metrics">
     <div class="sp"><b id="m-speed">-</b><small>km/h</small></div>
     <div class="in"><b id="m-incline">-</b><small>% pente</small></div>
-    <div><b id="m-dist">-</b><small>m</small></div>
+    <div class="hr"><b id="m-hr">-</b><small>bpm</small></div>
+    <div><b id="m-dist">-</b><small>km</small></div>
     <div><b id="m-time">-</b><small>temps</small></div>
+    <div><b id="m-kcal">-</b><small>kcal</small></div>
   </div>
   <p id="r-info" class="muted"></p>
   <div class="row big-btns">
@@ -72,6 +74,25 @@
   <div class="ctl adj"><span>Ajuster en direct</span>
     <span>Vit <button data-r="speed:-0.5">−</button><button data-r="speed:0.5">+</button>
           Pente <button data-r="incline:-1">−</button><button data-r="incline:1">+</button></span></div>
+</main>
+<main id="hist" class="view" hidden>
+  <div class="row"><button id="h-back" class="ghost">‹ Retour</button><b>Historique</b></div>
+  <div class="row">
+    <select id="h-period"><option value="7">7 jours</option><option value="30" selected>30 jours</option><option value="365">1 an</option><option value="0">Tout</option></select>
+    <select id="h-name"></select>
+    <select id="h-sort"><option value="start">Par date</option><option value="distance">Par distance</option><option value="duration">Par durée</option><option value="avgSpeed">Par vitesse</option></select>
+  </div>
+  <div id="h-totals" class="metrics"></div>
+  <div id="h-list"></div>
+</main>
+
+<main id="sess" class="view" hidden>
+  <div class="row"><button id="s-back" class="ghost">‹ Retour</button><button id="s-del" class="danger">Supprimer</button></div>
+  <h2 id="s-title"></h2>
+  <p id="s-date" class="muted"></p>
+  <svg id="chart-sess" class="chart"></svg>
+  <p class="muted"><span style="color:var(--in)">■</span> pente · <span style="color:var(--sp)">▬</span> vitesse · <span style="color:var(--bad)">▬</span> fréquence cardiaque</p>
+  <div id="s-stats" class="metrics"></div>
 </main>
 <script type="module" src="src/app.js"></script>
 </body>

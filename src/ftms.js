@@ -37,10 +37,11 @@ export const cmd = {
 };
 
 export class Treadmill {
-  constructor({ onData, onLog, onDisconnect } = {}) {
+  constructor({ onData, onLog, onDisconnect, onReconnect } = {}) {
     this.onData = onData || (() => {});
     this.log = onLog || (() => {});
     this.onDisconnect = onDisconnect || (() => {});
+    this.onReconnect = onReconnect || (() => {});
     this.rx = 0;
     this.queue = Promise.resolve(); // le Control Point n'accepte qu'une écriture à la fois
   }
@@ -56,7 +57,32 @@ export class Treadmill {
       this.log('Filtre FTMS sans résultat, scan ouvert : ' + e.message);
       return navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [UUID.service] });
     });
-    this.device.addEventListener('gattserverdisconnected', () => this.onDisconnect());
+    this.device.addEventListener('gattserverdisconnected', () => this.#lost());
+    this.manual = false;
+    await this.#setup();
+  }
+
+  // Perte de liaison : on réessaie indéfiniment (sans geste utilisateur, même appareil).
+  #lost() {
+    this.onDisconnect();
+    if (!this.manual && !this.reconnecting) this.#retry(0);
+  }
+
+  async #retry(n) {
+    if (this.manual) { this.reconnecting = false; return; }
+    this.reconnecting = true;
+    try {
+      await this.#setup();
+      this.reconnecting = false;
+      this.log('Reconnecté');
+      this.onReconnect();
+    } catch (e) {
+      this.log('Reconnexion échouée : ' + e.message);
+      setTimeout(() => this.#retry(n + 1), Math.min(10000, 1000 * 2 ** n));
+    }
+  }
+
+  async #setup() {
     this.server = await this.device.gatt.connect();
     this.log('Connecté à ' + this.device.name);
 
@@ -88,6 +114,7 @@ export class Treadmill {
   }
 
   write(bytes) {
+    if (!this.connected || !this.cp) return Promise.resolve();
     this.queue = this.queue.then(async () => {
       this.log('TX ' + [...bytes].map((b) => b.toString(16).padStart(2, '0')).join(' '));
       await this.cp.writeValueWithResponse(bytes);
@@ -100,5 +127,5 @@ export class Treadmill {
   pause() { return this.write(cmd.pause()); }
   setSpeed(kmh) { return this.write(cmd.speed(kmh)); }
   setIncline(pct) { return this.write(cmd.incline(pct)); }
-  disconnect() { this.device?.gatt?.disconnect(); }
+  disconnect() { this.manual = true; this.device?.gatt?.disconnect(); }
 }

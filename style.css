@@ -20,16 +20,20 @@ input{width:100%;font:inherit;color:var(--txt);background:var(--card);border:1px
 .ctl{display:flex;align-items:center;justify-content:space-between;margin:8px 0;gap:8px}
 .ctl button{padding:8px 11px;margin-left:4px}
 .sp b{color:var(--sp)} .in b{color:var(--in)}
-.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0;text-align:center}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0;text-align:center}
 .metrics div{background:var(--card);border-radius:12px;padding:10px 4px}
 .metrics b{display:block;font-size:26px}
 .metrics .sp b{color:var(--sp)} .metrics .in b{color:var(--in)}
 .metrics small{color:var(--mut)}
+.metrics .hr b{color:var(--bad)}
+select{font:inherit;color:var(--txt);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 6px;flex:1;min-width:0}
+.month{color:var(--mut);margin:14px 0 4px;text-transform:capitalize}
+.se{display:flex;justify-content:space-between;gap:8px;cursor:pointer}
+input[type=checkbox]{width:auto}
 .big-btns button{flex:1;min-height:56px;font-size:18px}
 .wk{display:block}
 .wk .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
 .wk svg{height:60px;width:100%;display:block;margin-bottom:8px;border-radius:8px}
 .wk .acts{display:flex;gap:8px}.wk .acts .primary{flex:1}
-#history{padding-left:18px;color:var(--mut);font-size:14px}
 pre{max-height:10em;overflow:auto;font-size:11px;color:var(--mut)}
 [hidden]{display:none!important}

@@ -31,4 +31,13 @@ r.start();
 for (let i = 0; i < 20 && !done; i++) { t += 500; r.tick(); }
 assert.deepEqual(calls, [['v', 5], ['i', 0], ['v', 8], ['i', 2]]);
 assert.ok(done);
+
+// Enregistreur : 60 s à 12 km/h, pente 5 %, FC 150
+const { Recorder } = await import('../src/recorder.js');
+const rec = new Recorder('x', 1000);
+for (let i = 0; i < 60; i++) rec.tick({ speed: 12, incline: 5, hr: 150, energy: 10 + Math.floor(i / 6) });
+const sm = rec.summary();
+assert.equal(sm.distance, 200); assert.equal(sm.ascent, 10); assert.equal(sm.avgSpeed, 12);
+assert.equal(sm.hrAvg, 150); assert.equal(sm.kcal, 9); assert.equal(sm.samples.length, 12);
+assert.deepEqual(sm.samples[0], [5, 12, 5, 150]);
 console.log('OK');
