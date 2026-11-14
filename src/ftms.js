@@ -45,6 +45,8 @@ export class Treadmill {
     this.queue = Promise.resolve(); // le Control Point n'accepte qu'une écriture à la fois
   }
 
+  get connected() { return !!this.server?.connected; }
+
   async connect() {
     this.device = await navigator.bluetooth.requestDevice({
       filters: [{ services: [UUID.service] }],

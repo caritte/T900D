@@ -3,40 +3,76 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0f1115">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
 <title>T900D</title>
 </head>
 <body>
-<h1>T900D</h1>
-<p><button id="connect">Connecter</button> <span id="state">déconnecté</span></p>
+<header id="bar">
+  <b>T900D</b>
+  <span id="status"><i id="dot"></i><span id="state">déconnecté</span></span>
+  <button id="connect" class="ghost">Connecter</button>
+</header>
 
-<h2>Live</h2>
-<p>Vitesse <b id="m-speed">-</b> km/h · Pente <b id="m-incline">-</b> % · Dist <b id="m-dist">-</b> m · Temps <b id="m-time">-</b> s · FC <b id="m-hr">-</b></p>
+<main id="home" class="view">
+  <div class="row"><h2>Mes séances</h2><button id="new" class="primary">+ Nouvelle</button></div>
+  <div id="list"></div>
+  <h3>Historique</h3>
+  <ul id="history"></ul>
+  <details>
+    <summary>Outils</summary>
+    <p><button id="export" class="ghost">Exporter</button>
+       <button id="import" class="ghost">Importer</button>
+       <input id="file" type="file" accept="application/json" hidden></p>
+    <pre id="log"></pre>
+  </details>
+</main>
 
-<h2>Manuel</h2>
-<p>
-  <button id="start">Start</button> <button id="stop">Stop</button>
-  Vitesse <button data-d="speed:-0.5">-</button><button data-d="speed:0.5">+</button>
-  Pente <button data-d="incline:-1">-</button><button data-d="incline:1">+</button>
-</p>
+<main id="edit" class="view" hidden>
+  <div class="row"><button id="e-back" class="ghost">‹ Retour</button><button id="e-save" class="primary">Enregistrer</button></div>
+  <input id="e-name" placeholder="Nom de la séance">
+  <svg id="chart-edit" class="chart big"></svg>
+  <p id="e-stats" class="muted"></p>
+  <section class="card">
+    <div class="row"><b id="e-title"></b>
+      <span><button data-a="left" class="ghost">←</button><button data-a="right" class="ghost">→</button></span></div>
+    <div class="ctl"><span>Durée <b id="e-dur"></b></span>
+      <span><button data-a="dur:-60">−1m</button><button data-a="dur:-15">−15s</button><button data-a="dur:15">+15s</button><button data-a="dur:60">+1m</button></span></div>
+    <div class="ctl"><span class="sp">Vitesse <b id="e-spd"></b></span>
+      <span><button data-a="spd:-0.5">−</button><button data-a="spd:0.5">+</button></span></div>
+    <div class="ctl"><span class="in">Pente <b id="e-inc"></b></span>
+      <span><button data-a="inc:-1">−</button><button data-a="inc:1">+</button></span></div>
+    <div class="row">
+      <button data-a="add" class="primary">+ Étape</button>
+      <button data-a="repeat" class="ghost">Répéter…</button>
+      <button data-a="del" class="danger">Supprimer</button>
+    </div>
+  </section>
+  <p class="muted">Touche une zone du graphe pour la sélectionner, puis tire les poignées : carré bleu = pente, rond orange = vitesse.</p>
+</main>
 
-<h2>Séance</h2>
-<p><select id="saved"></select> <button id="save">Enregistrer</button> <button id="del">Supprimer</button></p>
-<p><input id="name" placeholder="Nom de la séance"></p>
-<textarea id="text" rows="10" cols="40">5:00 @ 6 / 1 Échauffement
-repeat 4 {
-  1:00 @ 11 / 1 Vite
-  1:30 @ 6 Récup
-}
-5:00 @ 5 Retour au calme</textarea>
-<p id="err"></p>
-<p><button id="run">Lancer</button> <button id="pause">Pause</button> <button id="skip">Étape suivante</button> <button id="end">Arrêter</button></p>
-<p id="progress"></p>
-
-<h2>Historique</h2>
-<ul id="history"></ul>
-
-<h2>Journal BT</h2>
-<pre id="log" style="max-height:12em;overflow:auto"></pre>
+<main id="run" class="view" hidden>
+  <div class="row"><button id="r-back" class="ghost">‹ Retour</button><b id="r-title"></b></div>
+  <svg id="chart-run" class="chart"></svg>
+  <div class="metrics">
+    <div class="sp"><b id="m-speed">-</b><small>km/h</small></div>
+    <div class="in"><b id="m-incline">-</b><small>% pente</small></div>
+    <div><b id="m-dist">-</b><small>m</small></div>
+    <div><b id="m-time">-</b><small>temps</small></div>
+  </div>
+  <p id="r-info" class="muted"></p>
+  <div class="row big-btns">
+    <button id="r-start" class="primary">Démarrer</button>
+    <button id="r-pause" hidden>Pause</button>
+    <button id="r-skip" hidden>Suivante</button>
+    <button id="r-stop" class="danger" hidden>Arrêter</button>
+  </div>
+  <div class="ctl adj"><span>Ajuster en direct</span>
+    <span>Vit <button data-r="speed:-0.5">−</button><button data-r="speed:0.5">+</button>
+          Pente <button data-r="incline:-1">−</button><button data-r="incline:1">+</button></span></div>
+</main>
 <script type="module" src="src/app.js"></script>
 </body>
 </html>

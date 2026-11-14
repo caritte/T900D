@@ -97,3 +97,13 @@ export class WorkoutRunner {
     return true;
   }
 }
+
+// Résumé d'une séance : durée (s), distance (km), dénivelé positif estimé (m).
+export function stats(steps) {
+  let duration = 0, km = 0, ascent = 0;
+  for (const s of steps) {
+    const d = (s.speed * s.duration) / 3600;
+    duration += s.duration; km += d; ascent += d * 1000 * (s.incline / 100);
+  }
+  return { duration, km, ascent };
+}
