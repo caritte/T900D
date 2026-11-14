@@ -15,5 +15,7 @@ for (const k of ['workouts', 'vma']) { // données d'avant les profils
 
 export const loadWorkouts = () => get(`workouts:${cur}`, []).filter((w) => Array.isArray(w.steps));
 export const saveWorkouts = (l) => set(`workouts:${cur}`, l);
+export const loadFavs = () => get(`favs:${cur}`, []);
+export const saveFavs = (l) => set(`favs:${cur}`, l);
 export const loadVma = () => +localStorage[`vma:${cur}`] || 11;
 export const saveVma = (v) => { localStorage[`vma:${cur}`] = v; };

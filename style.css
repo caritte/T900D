@@ -6,7 +6,12 @@
   --sl:var(--safe-area-inset-left,env(safe-area-inset-left,0px));--sr:var(--safe-area-inset-right,env(safe-area-inset-right,0px))}
 *{box-sizing:border-box}
 body{padding-top:var(--st);padding-bottom:var(--sb)}
-body::before{content:"";position:fixed;z-index:10;top:0;left:0;right:0;height:var(--st);background:#000} /* bandeau sous la barre d'état */
+/* Bandeaux noirs sous les barres système : haut, bas, et côtés (barre de navigation en paysage) */
+body::before,body::after,html::before,html::after{content:"";position:fixed;z-index:10;background:#000}
+body::before{top:0;left:0;right:0;height:var(--st)}
+body::after{bottom:0;left:0;right:0;height:var(--sb)}
+html::before{top:0;bottom:0;left:0;width:var(--sl)}
+html::after{top:0;bottom:0;right:0;width:var(--sr)}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   -webkit-tap-highlight-color:transparent;overscroll-behavior-y:none}
@@ -19,7 +24,7 @@ p{margin:8px 0}
 #bar{position:sticky;top:var(--st);z-index:5;display:flex;align-items:center;gap:10px;
   padding:8px calc(14px + var(--sr)) 8px calc(14px + var(--sl));
   background:rgba(11,13,18,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
-.logo{font-size:18px;letter-spacing:.04em;background:linear-gradient(90deg,var(--in),var(--sp));-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo{cursor:pointer;font-size:18px;letter-spacing:.04em;background:linear-gradient(90deg,var(--in),var(--sp));-webkit-background-clip:text;background-clip:text;color:transparent}
 #status{flex:1;min-width:0;color:var(--mut);font-size:14px;display:flex;align-items:center;gap:6px}
 #state{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #dot{flex-shrink:0}

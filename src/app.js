@@ -3,7 +3,7 @@ import { DemoTreadmill } from './demo.js';
 import { WorkoutRunner, stats, parseWorkout } from './workout.js';
 import { PROGRAMS, CATS, LEVELS, CAT_INFO } from './programs.js';
 import { drawChart, drawSession, LIMITS } from './chart.js';
-import { loadWorkouts, saveWorkouts, uid, currentUser, loadVma, saveVma, LEGACY_USER } from './store.js';
+import { loadWorkouts, saveWorkouts, uid, currentUser, loadVma, saveVma, loadFavs, saveFavs, LEGACY_USER } from './store.js';
 import { Recorder } from './recorder.js';
 import { putSession, allSessions, delSession } from './db.js';
 import { beep, say, unlock } from './audio.js';
@@ -70,7 +70,7 @@ $('disconnect').onclick = () => {
 // ---------- Navigation ----------
 // Chaque écran ouvert ajoute une entrée d'historique : le bouton Retour d'Android remonte d'un niveau.
 const views = ['home', 'cat', 'prefs', 'edit', 'run', 'hist', 'sess'];
-let current = 'home', popping = false;
+let current = 'home', popping = false, homing = false;
 function show(v) {
   views.forEach((x) => { $(x).hidden = x !== v; });
   if (v !== 'home' && v !== current && !popping) history.pushState(v, '');
@@ -83,12 +83,16 @@ const backFns = {
 };
 addEventListener('popstate', async () => {
   popping = true;
-  try { if ((await backFns[current]?.()) === false) history.pushState(current, ''); } finally { popping = false; }
+  try { if ((await backFns[current]?.()) === false) { history.pushState(current, ''); homing = false; } } finally { popping = false; }
+  // Retour à l'accueil : on remonte écran par écran jusqu'à l'accueil (une séance en cours peut l'interrompre).
+  if (homing) { if (current === 'home') homing = false; else history.back(); }
 });
+$('logo').onclick = () => { if (current !== 'home') { homing = true; history.back(); } };
 document.querySelectorAll('[data-back]').forEach((b) => { b.onclick = () => history.back(); });
 
 // ---------- Accueil et catégories ----------
 let workouts = loadWorkouts(), vma = loadVma();
+let favs = loadFavs(); // identifiants des programmes intégrés mis en favoris
 const mySessions = () => allSessions(currentUser(), LEGACY_USER);
 let cat = null, level = 0; // catégorie ouverte ('mine' = mes séances), filtre de niveau
 
@@ -105,7 +109,7 @@ function renderHome() {
     const n = PROGRAMS.filter((p) => p.cat === c).length;
     tile($('tiles-train'), CAT_INFO[c].icon, c, `${n} programme${n > 1 ? 's' : ''}`, CAT_INFO[c].color, () => openCat(c));
   }
-  tile($('tiles-train'), '⭐', 'Mes séances', `${workouts.length} perso`, '#f472b6', () => openCat('mine'));
+  tile($('tiles-train'), '⭐', 'Mes séances', `${favs.length} favori${favs.length > 1 ? 's' : ''} · ${workouts.length} perso`, '#f472b6', () => openCat('mine'));
   tile($('tiles-train'), '🎛️', 'Course libre', 'Pilotage manuel', '#94a3b8', () => openRun(null));
   tile($('tiles-more'), '📊', 'Historique', 'Séances et stats', '#4c8dff', () => openHist());
   tile($('tiles-more'), '⚙️', 'Réglages', `VMA ${vma} km/h`, '#94a3b8', () => { show('prefs'); $('vma').textContent = vma + ' km/h'; });
@@ -121,11 +125,13 @@ function addCard(parent, w, builtin) {
   c.innerHTML = `<div class="top"><b>${esc(w.name)}</b>${builtin ? `<span class="badge l${w.level}">${LEVELS[w.level]}</span>` : ''}</div>
     <svg></svg><div class="muted">${summary(w.steps)}${w.desc ? '<br>' + esc(w.desc) : ''}</div>
     <div class="acts"><button class="primary" data-a="run">▶ Lancer</button>
-    <button class="ghost" data-a="edit">${builtin ? 'Personnaliser' : 'Modifier'}</button>${builtin ? '' : '<button class="ghost" data-a="del">🗑</button>'}</div>`;
+    <button class="ghost" data-a="edit">${builtin ? 'Personnaliser' : 'Modifier'}</button>${builtin
+      ? `<button class="ghost" data-a="fav" title="Favori">${favs.includes(w.id) ? '★' : '☆'}</button>` : '<button class="ghost" data-a="del">🗑</button>'}</div>`;
   c.onclick = (e) => {
     const a = e.target.dataset.a;
     if (a === 'run') openRun(w);
     if (a === 'edit') openEdit(builtin ? { id: uid(), name: w.name, steps: w.steps } : w);
+    if (a === 'fav') { favs = favs.includes(w.id) ? favs.filter((x) => x !== w.id) : [...favs, w.id]; saveFavs(favs); renderCat(); }
     if (a === 'del' && confirm(`Supprimer « ${w.name} » ?`)) { workouts = workouts.filter((x) => x !== w); saveWorkouts(workouts); renderCat(); }
   };
   parent.appendChild(c);
@@ -136,12 +142,17 @@ function renderCat() {
   const mine = cat === 'mine';
   show('cat');
   $('c-title').textContent = mine ? '⭐ Mes séances' : `${CAT_INFO[cat].icon} ${cat}`;
-  $('c-sub').textContent = mine ? 'Tes séances créées ou personnalisées.' : `${CAT_INFO[cat].sub}. Vitesses calculées pour une VMA de ${vma} km/h.`;
+  $('c-sub').textContent = mine ? 'Tes programmes favoris (☆ sur un programme) et les séances que tu as créées.' : `${CAT_INFO[cat].sub}. Vitesses calculées pour une VMA de ${vma} km/h.`;
   $('new').hidden = !mine;
   $('c-list').replaceChildren(); $('c-levels').replaceChildren();
   if (mine) {
+    const favProgs = PROGRAMS.filter((p) => favs.includes(p.id));
+    const title = (t) => $('c-list').insertAdjacentHTML('beforeend', `<div class="month">${t}</div>`);
+    if (favProgs.length) title('Favoris');
+    favProgs.forEach((p) => addCard($('c-list'), { ...p, steps: parseWorkout(p.text, vma) }, true));
+    if (workouts.length) title('Mes créations');
     workouts.forEach((w) => addCard($('c-list'), w, false));
-    if (!workouts.length) $('c-list').innerHTML = '<p class="muted">Aucune séance perso. Crée-en une, ou personnalise un programme.</p>';
+    if (!favProgs.length && !workouts.length) $('c-list').innerHTML = '<p class="muted">Rien ici pour l\'instant. Touche ☆ sur un programme pour l\'ajouter en favori, ou crée une séance avec « + Nouvelle ».</p>';
     return;
   }
   const list = PROGRAMS.filter((p) => p.cat === cat), levels = [...new Set(list.map((p) => p.level))];
