@@ -3,7 +3,7 @@ import { DemoTreadmill } from './demo.js';
 import { WorkoutRunner, stats, parseWorkout } from './workout.js';
 import { PROGRAMS, CATS, LEVELS, CAT_INFO } from './programs.js';
 import { drawChart, drawSession, LIMITS } from './chart.js';
-import { loadWorkouts, saveWorkouts, uid, loadUsers, saveUsers, currentUser, setCurrentUser, loadVma, saveVma, dropUserData, LEGACY_USER } from './store.js';
+import { loadWorkouts, saveWorkouts, uid, currentUser, loadVma, saveVma, LEGACY_USER } from './store.js';
 import { Recorder } from './recorder.js';
 import { putSession, allSessions, delSession } from './db.js';
 import { beep, say, unlock } from './audio.js';
@@ -62,7 +62,7 @@ $('disconnect').onclick = () => {
 
 // ---------- Navigation ----------
 // Chaque écran ouvert ajoute une entrée d'historique : le bouton Retour d'Android remonte d'un niveau.
-const views = ['users', 'home', 'cat', 'prefs', 'edit', 'run', 'hist', 'sess'];
+const views = ['home', 'cat', 'prefs', 'edit', 'run', 'hist', 'sess'];
 let current = 'home', popping = false;
 function show(v) {
   views.forEach((x) => { $(x).hidden = x !== v; });
@@ -71,7 +71,6 @@ function show(v) {
 }
 // Où mène « retour » depuis chaque écran. Renvoyer false annule (séance en cours non confirmée).
 const backFns = {
-  users: () => (currentUser() ? renderHome() : false),
   cat: () => renderHome(), prefs: () => renderHome(), hist: () => renderHome(),
   sess: () => openHist(), edit: () => backToList(), run: () => leaveRun(),
 };
@@ -82,51 +81,8 @@ addEventListener('popstate', async () => {
 document.querySelectorAll('[data-back]').forEach((b) => { b.onclick = () => history.back(); });
 
 // ---------- Accueil et catégories ----------
-let workouts = [], vma = 11;
+let workouts = loadWorkouts(), vma = loadVma();
 const mySessions = () => allSessions(currentUser(), LEGACY_USER);
-
-// ---------- Profils ----------
-let users = loadUsers();
-const COLORS = ['#f472b6', '#4c8dff', '#2fd27a', '#ffb020', '#a78bfa', '#22d3ee', '#ff5a5f'];
-const me = () => users.find((u) => u.id === currentUser());
-function selectUser(id) {
-  setCurrentUser(id); workouts = loadWorkouts(); vma = loadVma();
-  $('who').textContent = '👤 ' + me().name;
-}
-function renderUsers() {
-  show('users');
-  $('u-list').replaceChildren();
-  users.forEach((u, i) => {
-    const b = document.createElement('button');
-    b.className = 'tile' + (u.id === currentUser() ? ' cur' : ''); b.style.setProperty('--c', COLORS[i % COLORS.length]);
-    b.innerHTML = `<i class="avatar">${esc(u.name[0].toUpperCase())}</i><b>${esc(u.name)}</b><small>${u.id === currentUser() ? 'Profil actif' : 'Choisir'}</small>`;
-    b.onclick = () => { selectUser(u.id); history.back(); };
-    $('u-list').appendChild(b);
-  });
-}
-$('who').onclick = () => {
-  if (run && run.state !== 'idle') return alert('Termine la séance en cours avant de changer de profil.');
-  if (current !== 'users') renderUsers();
-};
-$('u-add').onclick = () => {
-  const name = prompt('Prénom du nouveau profil ?')?.trim();
-  if (!name) return;
-  users.push({ id: uid(), name }); saveUsers(users); renderUsers();
-};
-$('u-rename').onclick = () => {
-  const name = prompt('Nouveau prénom ?', me().name)?.trim();
-  if (!name) return;
-  me().name = name; saveUsers(users); selectUser(currentUser()); $('u-name').textContent = name;
-};
-$('u-del').onclick = async () => {
-  if (users.length < 2) return alert('Il faut garder au moins un profil.');
-  if (!confirm(`Supprimer le profil « ${me().name} » avec ses séances perso et tout son historique ?`)) return;
-  const id = currentUser();
-  for (const x of await mySessions()) await delSession(x.id);
-  dropUserData(id);
-  users = users.filter((u) => u.id !== id); saveUsers(users);
-  localStorage.removeItem('user'); location.reload();
-};
 let cat = null, level = 0; // catégorie ouverte ('mine' = mes séances), filtre de niveau
 
 function tile(parent, icon, name, sub, color, fn) {
@@ -137,7 +93,6 @@ function tile(parent, icon, name, sub, color, fn) {
 }
 function renderHome() {
   cat = null; show('home');
-  $('hello').textContent = 'Bonjour ' + me().name;
   $('tiles-train').replaceChildren(); $('tiles-more').replaceChildren();
   for (const c of CATS) {
     const n = PROGRAMS.filter((p) => p.cat === c).length;
@@ -146,7 +101,7 @@ function renderHome() {
   tile($('tiles-train'), '⭐', 'Mes séances', `${workouts.length} perso`, '#f472b6', () => openCat('mine'));
   tile($('tiles-train'), '🎛️', 'Course libre', 'Pilotage manuel', '#94a3b8', () => openRun(null));
   tile($('tiles-more'), '📊', 'Historique', 'Séances et stats', '#4c8dff', () => openHist());
-  tile($('tiles-more'), '⚙️', 'Réglages', `VMA ${vma} km/h`, '#94a3b8', () => { show('prefs'); $('vma').textContent = vma + ' km/h'; $('u-name').textContent = me().name; });
+  tile($('tiles-more'), '⚙️', 'Réglages', `VMA ${vma} km/h`, '#94a3b8', () => { show('prefs'); $('vma').textContent = vma + ' km/h'; });
   mySessions().then((all) => {
     const wk = all.filter((x) => x.start >= Date.now() - 7 * 864e5), sum = (k) => wk.reduce((a, x) => a + x[k], 0);
     $('week').innerHTML = cell(wk.length, 'séances · 7 j') + cell((sum('distance') / 1000).toFixed(1), 'km · 7 j') + cell(fmt(sum('duration')), 'temps · 7 j');
@@ -199,8 +154,8 @@ $('prefs').addEventListener('click', (e) => {
 $('new').onclick = () => openEdit(null);
 $('export').onclick = async () => {
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([JSON.stringify({ user: me().name, workouts, sessions: await mySessions() })], { type: 'application/json' }));
-  a.download = `t900d-${me().name}.json`; a.click();
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({ workouts, vma, sessions: await mySessions() })], { type: 'application/json' }));
+  a.download = 't900d-sauvegarde.json'; a.click();
 };
 $('import').onclick = () => $('file').click();
 $('file').onchange = async (e) => {
@@ -209,6 +164,7 @@ $('file').onchange = async (e) => {
     const list = Array.isArray(data) ? data : data.workouts ?? [];
     workouts.push(...list.filter((w) => w.name && Array.isArray(w.steps)).map((w) => ({ ...w, id: uid() })));
     for (const x of data.sessions ?? []) if (x.id && x.start) await putSession({ ...x, user: currentUser() });
+    if (data.vma) { vma = clamp(+data.vma, 7, 22); saveVma(vma); $('vma').textContent = vma + ' km/h'; }
     saveWorkouts(workouts); alert('Import terminé');
   } catch { alert('Fichier invalide'); }
 };
@@ -444,7 +400,5 @@ function openSess(x) {
 }
 $('s-del').onclick = async () => { if (confirm('Supprimer cette séance de l\'historique ?')) { await delSession(sess.id); history.back(); } };
 
-// Dernier profil utilisé, sinon choix du profil au premier lancement.
-if (me()) { selectUser(currentUser()); renderHome(); } else renderUsers();
-setStatus();
+renderHome(); setStatus();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
