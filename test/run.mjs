@@ -40,4 +40,14 @@ const sm = rec.summary();
 assert.equal(sm.distance, 200); assert.equal(sm.ascent, 10); assert.equal(sm.avgSpeed, 12);
 assert.equal(sm.hrAvg, 150); assert.equal(sm.kcal, 9); assert.equal(sm.samples.length, 12);
 assert.deepEqual(sm.samples[0], [5, 12, 5, 150]);
+
+// Programmes intégrés : tous se construisent, vitesses dans les limites du tapis
+const { PROGRAMS } = await import('../src/programs.js');
+assert.equal(parseWorkout('1:00 @ 85% / 1 Seuil', 12)[0].speed, 10);
+assert.throws(() => parseWorkout('1:00 @ 85%'), /VMA/);
+for (const vma of [7, 11, 22]) for (const p of PROGRAMS) {
+  const st = parseWorkout(p.text, vma);
+  assert.ok(st.every((s) => s.speed >= 1 && s.speed <= 18 && s.incline >= 0 && s.incline <= 10 && s.duration >= 10), p.id);
+}
+if (process.argv[2] === 'list') for (const p of PROGRAMS) console.log(p.level, p.cat.padEnd(16), p.name.padEnd(36), Math.round(totalDuration(parseWorkout(p.text, 11)) / 60) + ' min');
 console.log('OK');

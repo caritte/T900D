@@ -17,8 +17,17 @@
 </header>
 
 <main id="home" class="view">
-  <div class="row"><h2>Mes séances</h2><button id="new" class="primary">+ Nouvelle</button></div>
-  <div id="list"></div>
+  <div class="tabs"><button id="tab-progs">Programmes</button><button id="tab-mine">Mes séances</button></div>
+  <section id="progs">
+    <div class="card ctl"><span>Ma VMA <b id="vma"></b></span><span><button data-v="-0.5">−</button><button data-v="0.5">+</button></span></div>
+    <p class="muted">Les vitesses des programmes sont calculées à partir de ta VMA (vitesse maximale tenable environ 6 minutes). Repères : débutant 9–11, intermédiaire 12–14, confirmé 15 et plus. Pour la mesurer : catégorie Test.</p>
+    <div class="row"><select id="f-cat"></select><select id="f-level"></select></div>
+    <div id="plist"></div>
+  </section>
+  <section id="mine" hidden>
+    <div class="row"><h2>Mes séances</h2><button id="new" class="primary">+ Nouvelle</button></div>
+    <div id="list"></div>
+  </section>
   <div class="row"><button id="free" class="ghost">Course libre</button><button id="hist-open" class="ghost">Historique &amp; stats</button></div>
   <details>
     <summary>Outils</summary>

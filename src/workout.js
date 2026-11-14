@@ -6,7 +6,8 @@
 //     1:00 @ 12 / 1 Vite
 //     1:30 @ 6 Récup
 //   }
-// Durée : m:ss ou secondes. Vitesse en km/h, pente en %. '#' = commentaire.
+// Durée : m:ss ou secondes. Vitesse en km/h, ou en % de la VMA (ex. 85%) si une VMA est fournie.
+// Pente en %. '#' = commentaire.
 
 const toSec = (s) => {
   const m = /^(\d+):(\d{1,2})$/.exec(s);
@@ -15,7 +16,9 @@ const toSec = (s) => {
   throw new Error(`Durée invalide « ${s} »`);
 };
 
-export function parseWorkout(text) {
+const MAX_SPEED = 18;
+
+export function parseWorkout(text, vma) {
   const stack = [{ steps: [], times: 1 }];
   text.split('\n').forEach((raw, i) => {
     const line = raw.replace(/#.*/, '').trim();
@@ -29,11 +32,14 @@ export function parseWorkout(text) {
       for (let k = 0; k < g.times; k++) stack.at(-1).steps.push(...g.steps);
       return;
     }
-    m = /^(\S+)\s*@\s*([\d.]+)(?:\s*\/\s*(-?[\d.]+))?\s*(.*)$/.exec(line);
+    m = /^(\S+)\s*@\s*([\d.]+%?)(?:\s*\/\s*(-?[\d.]+))?\s*(.*)$/.exec(line);
     if (!m) err(`syntaxe non reconnue « ${line} »`);
     let duration;
     try { duration = toSec(m[1]); } catch (e) { err(e.message); }
-    stack.at(-1).steps.push({ duration, speed: +m[2], incline: m[3] ? +m[3] : 0, label: m[4] || '' });
+    const pct = m[2].endsWith('%');
+    if (pct && !vma) err('vitesse en % sans VMA');
+    const speed = pct ? Math.min(MAX_SPEED, Math.max(1, Math.round(parseFloat(m[2]) / 100 * vma * 2) / 2)) : +m[2];
+    stack.at(-1).steps.push({ duration, speed, incline: m[3] ? +m[3] : 0, label: m[4] || '' });
   });
   if (stack.length !== 1) throw new Error('Accolade « { » non fermée');
   const steps = stack[0].steps;

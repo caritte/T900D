@@ -37,11 +37,12 @@ export const cmd = {
 };
 
 export class Treadmill {
-  constructor({ onData, onLog, onDisconnect, onReconnect } = {}) {
+  constructor({ onData, onLog, onDisconnect, onReconnect, onStatus } = {}) {
     this.onData = onData || (() => {});
     this.log = onLog || (() => {});
     this.onDisconnect = onDisconnect || (() => {});
     this.onReconnect = onReconnect || (() => {});
+    this.onStatus = onStatus || (() => {});
     this.rx = 0;
     this.queue = Promise.resolve(); // le Control Point n'accepte qu'une écriture à la fois
   }
@@ -96,6 +97,17 @@ export class Treadmill {
       this.onData(parseTreadmillData(e.target.value));
     });
     await data.startNotifications();
+
+    // Fitness Machine Status : signale notamment les appuis Start/Stop sur la console.
+    try {
+      const st = await svc.getCharacteristic(UUID.status);
+      st.addEventListener('characteristicvaluechanged', (e) => {
+        const v = new Uint8Array(e.target.value.buffer);
+        this.log('Statut ' + [...v].map((b) => b.toString(16).padStart(2, '0')).join(' '));
+        this.onStatus(v[0], v[1]);
+      });
+      await st.startNotifications();
+    } catch { this.log('Pas de caractéristique Statut'); }
 
     this.cp = await svc.getCharacteristic(UUID.controlPoint);
     this.cp.addEventListener('characteristicvaluechanged', (e) => {

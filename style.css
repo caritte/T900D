@@ -36,4 +36,7 @@ input[type=checkbox]{width:auto}
 .wk svg{height:60px;width:100%;display:block;margin-bottom:8px;border-radius:8px}
 .wk .acts{display:flex;gap:8px}.wk .acts .primary{flex:1}
 pre{max-height:10em;overflow:auto;font-size:11px;color:var(--mut)}
+.tabs{display:flex;gap:8px;margin-bottom:10px}.tabs button{flex:1}.tabs .on{background:var(--in)}
+.badge{font-size:12px;border:1px solid var(--line);border-radius:8px;padding:2px 6px;color:var(--mut);white-space:nowrap}
+.wk p{margin:0 0 8px}
 [hidden]{display:none!important}

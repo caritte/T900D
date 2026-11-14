@@ -1,11 +1,12 @@
 import { Treadmill } from './ftms.js';
 import { DemoTreadmill } from './demo.js';
-import { WorkoutRunner, stats } from './workout.js';
+import { WorkoutRunner, stats, parseWorkout } from './workout.js';
+import { PROGRAMS, CATS, LEVELS } from './programs.js';
 import { drawChart, drawSession, LIMITS } from './chart.js';
 import { loadWorkouts, saveWorkouts, uid } from './store.js';
 import { Recorder } from './recorder.js';
 import { putSession, allSessions, delSession } from './db.js';
-import { beep, say } from './audio.js';
+import { beep, say, unlock } from './audio.js';
 
 const $ = (id) => document.getElementById(id);
 const fmt = (s) => { s = Math.round(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), r = s % 60;
@@ -26,16 +27,21 @@ const setStatus = () => {
   $('connect').hidden = !!on;
 };
 function onData(d) {
+  const prev = live.speed;
   live = { ...live, ...d };
+  // Start/Stop appuyés sur la console : le tapis passe de l'arrêt au mouvement, ou l'inverse.
+  if (prev === 0 && d.speed > 0) consoleStart();
+  if (prev > 0 && d.speed === 0) consolePause();
   $('m-speed').textContent = d.speed ?? '-';
   $('m-incline').textContent = d.incline ?? '-';
   $('m-hr').textContent = d.hr || '-';
 }
-async function ensureConnected() {
+async function ensureConnected(quiet = false) {
   if (tm?.connected) return true;
   try {
     tm ??= new (demo ? DemoTreadmill : Treadmill)({
       onLog: log, onData,
+      onStatus: (op) => { if (op === 0x04) consoleStart(); if (op === 0x02) consolePause(); },
       // Le tapis continue de tourner sans liaison : la séance continue aussi, on resynchronise au retour.
       onDisconnect: () => { live.speed = undefined; setTimeout(setStatus, 50); if (run?.state === 'running') speak('Connexion au tapis perdue'); },
       onReconnect: () => { setStatus(); setTimeout(resync, 2500); },
@@ -43,11 +49,11 @@ async function ensureConnected() {
     await tm.connect();
     setStatus();
     return true;
-  } catch (e) { log('Erreur : ' + e.message); alert('Connexion impossible : ' + e.message); return false; }
+  } catch (e) { log('Erreur : ' + e.message); if (!quiet) alert('Connexion impossible : ' + e.message); return false; }
 }
 const keepAwake = async () => { try { wake = await navigator.wakeLock?.request('screen'); } catch { /* ignoré */ } };
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && run?.runner?.running) keepAwake(); });
-$('connect').onclick = ensureConnected;
+$('connect').onclick = () => ensureConnected();
 
 // ---------- Navigation ----------
 const views = ['home', 'edit', 'run', 'hist', 'sess'];
@@ -55,24 +61,51 @@ const show = (v) => views.forEach((x) => { $(x).hidden = x !== v; });
 
 // ---------- Accueil ----------
 let workouts = loadWorkouts();
+// Carte d'une séance. builtin : programme intégré (non supprimable, « Personnaliser » en fait une copie).
+function addCard(parent, w, builtin) {
+  const c = document.createElement('div');
+  c.className = 'card wk';
+  c.innerHTML = `<div class="top"><b>${esc(w.name)}</b>${builtin ? `<span class="badge">${LEVELS[w.level]}</span>` : ''}</div>
+    <svg></svg><p class="muted">${summary(w.steps)}${w.desc ? '<br>' + esc(w.desc) : ''}</p>
+    <div class="acts"><button class="primary" data-a="run">▶ Lancer</button>
+    <button class="ghost" data-a="edit">${builtin ? 'Personnaliser' : 'Modifier'}</button>${builtin ? '' : '<button class="ghost" data-a="del">🗑</button>'}</div>`;
+  c.onclick = (e) => {
+    const a = e.target.dataset.a;
+    if (a === 'run') openRun(w);
+    if (a === 'edit') openEdit(builtin ? { id: uid(), name: w.name, steps: w.steps } : w);
+    if (a === 'del' && confirm(`Supprimer « ${w.name} » ?`)) { workouts = workouts.filter((x) => x !== w); saveWorkouts(workouts); renderHome(); }
+  };
+  parent.appendChild(c);
+  drawChart(c.querySelector('svg'), w.steps, { compact: true });
+}
+let vma = +localStorage.vma || 11;
+$('f-cat').innerHTML = '<option value="">Toutes catégories</option>' + CATS.map((c) => `<option>${c}</option>`).join('');
+$('f-level').innerHTML = '<option value="0">Tous niveaux</option>' + LEVELS.slice(1).map((l, i) => `<option value="${i + 1}">${l}</option>`).join('');
+$('f-cat').value = localStorage.fcat ?? CATS[0]; $('f-level').value = localStorage.flevel ?? '0';
+function renderProgs() {
+  const cat = localStorage.fcat = $('f-cat').value, level = +(localStorage.flevel = $('f-level').value);
+  $('vma').textContent = vma + ' km/h';
+  $('plist').replaceChildren();
+  PROGRAMS.filter((p) => (!cat || p.cat === cat) && (!level || p.level === level))
+    .forEach((p) => addCard($('plist'), { ...p, steps: parseWorkout(p.text, vma) }, true));
+}
+$('f-cat').onchange = $('f-level').onchange = renderProgs;
+$('progs').addEventListener('click', (e) => {
+  const d = e.target.dataset.v; if (!d) return;
+  vma = clamp(vma + +d, 7, 22); localStorage.vma = vma; renderProgs();
+});
+function setTab(t) {
+  localStorage.tab = t;
+  for (const k of ['progs', 'mine']) { $(k).hidden = k !== t; $('tab-' + k).classList.toggle('on', k === t); }
+}
+$('tab-progs').onclick = () => setTab('progs');
+$('tab-mine').onclick = () => setTab('mine');
 function renderHome() {
-  show('home');
+  show('home'); setTab(localStorage.tab || 'progs');
+  renderProgs();
   $('list').replaceChildren();
-  workouts.forEach((w) => {
-    const c = document.createElement('div');
-    c.className = 'card wk';
-    c.innerHTML = `<div class="top"><b>${esc(w.name)}</b><span class="muted">${summary(w.steps)}</span></div>
-      <svg></svg><div class="acts"><button class="primary" data-a="run">▶ Lancer</button>
-      <button class="ghost" data-a="edit">Modifier</button><button class="ghost" data-a="del">🗑</button></div>`;
-    c.onclick = (e) => {
-      const a = e.target.dataset.a;
-      if (a === 'run') openRun(w);
-      if (a === 'edit') openEdit(w);
-      if (a === 'del' && confirm(`Supprimer « ${w.name} » ?`)) { workouts = workouts.filter((x) => x !== w); saveWorkouts(workouts); renderHome(); }
-    };
-    $('list').appendChild(c);
-    drawChart(c.querySelector('svg'), w.steps, { compact: true });
-  });
+  workouts.forEach((w) => addCard($('list'), w, false));
+  if (!workouts.length) $('list').innerHTML = '<p class="muted">Aucune séance perso. Crée-en une, ou personnalise un programme.</p>';
 }
 $('new').onclick = () => openEdit(null);
 $('free').onclick = () => openRun(null);
@@ -97,7 +130,8 @@ $('file').onchange = async (e) => {
 let ed;
 function openEdit(w) {
   ed = structuredClone(w ?? { id: uid(), name: '', steps: [{ duration: 300, speed: 6, incline: 0, label: '' }] });
-  ed.sel = 0; $('e-name').value = ed.name; show('edit'); renderEdit();
+  ed = { id: ed.id, name: ed.name, steps: ed.steps, sel: 0 };
+  $('e-name').value = ed.name; show('edit'); renderEdit();
 }
 function renderEdit() {
   drawChart($('chart-edit'), ed.steps, {
@@ -140,7 +174,7 @@ $('e-save').onclick = () => {
   const w = { id: ed.id, name: ed.name, steps: ed.steps };
   const i = workouts.findIndex((x) => x.id === w.id);
   i >= 0 ? workouts[i] = w : workouts.push(w);
-  saveWorkouts(workouts); renderHome();
+  saveWorkouts(workouts); localStorage.tab = 'mine'; renderHome();
 };
 
 // ---------- Course ----------
@@ -179,9 +213,15 @@ function showRec() {
 function openRun(w) {
   run = { w, runner: null, snap: null, rec: null, cue: {} };
   $('r-title').textContent = w?.name ?? 'Course libre';
-  $('r-info').textContent = w ? summary(w.steps) : 'Pilote le tapis avec les boutons ci-dessous.';
+  $('r-info').textContent = (w ? summary(w.steps) + ' · ' : '') + 'Appuie sur Start du tapis ou sur Démarrer.';
   setBtns('idle'); show('run'); drawRun(); showRec();
+  unlock(); // le clic qui ouvre cet écran autorise le son, même si le départ vient du tapis
+  ensureConnected(true).then((ok) => ok && keepAwake());
 }
+// Départ et pause déclenchés depuis la console du tapis (écran Course ouvert uniquement).
+const armed = () => run && !$('run').hidden;
+function consoleStart() { if (armed() && run.state !== 'running') startRun(false); }
+function consolePause() { if (armed() && run.state === 'running') pauseRun(false); }
 // Enregistrement : une mesure par seconde tant que la séance tourne.
 setInterval(() => {
   if (run?.state !== 'running' || !run.rec) return;
@@ -225,19 +265,35 @@ async function finishRun(completed) {
     ? `${completed ? 'Séance terminée 🎉' : 'Séance arrêtée'} · ${fmt(rec.t)} · ${(rec.dist / 1000).toFixed(2)} km — enregistrée dans l'historique`
     : 'Séance trop courte, non enregistrée';
 }
-$('r-start').onclick = async () => {
-  if (!(await ensureConnected())) return;
-  bip(660, 120); // débloque aussi l'audio (geste utilisateur requis)
-  if (run.state === 'idle') {
-    run.rec = new Recorder(run.w?.name ?? 'Course libre');
-    if (run.w) run.runner = new WorkoutRunner(run.w.steps, tm, {
-      onTick, onDone: () => { tm.stop(); speak('Séance terminée, bravo'); finishRun(true); },
-    });
-    else speak('C\'est parti');
-  }
-  await tm.start(); keepAwake(); setBtns('running'); run.runner?.start();
-};
-$('r-pause').onclick = () => { run.runner?.pause(); tm.pause(); setBtns('paused'); };
+// fromApp : true si le bouton de l'appli est utilisé (il faut alors commander le tapis),
+// false si le tapis a déjà démarré / s'est déjà arrêté de lui-même.
+async function startRun(fromApp) {
+  if (run.state === 'running' || run.busy) return;
+  run.busy = true;
+  try {
+    if (fromApp && !(await ensureConnected())) return;
+    bip(660, 120);
+    if (run.state === 'idle') {
+      run.rec = new Recorder(run.w?.name ?? 'Course libre');
+      if (run.w) run.runner = new WorkoutRunner(run.w.steps, tm, {
+        onTick, onDone: () => { tm.stop(); speak('Séance terminée, bravo'); finishRun(true); },
+      });
+      else speak('C\'est parti');
+    }
+    const resumed = run.state === 'paused', st = run.runner?.step;
+    if (fromApp) await tm.start();
+    keepAwake(); setBtns('running'); run.runner?.start();
+    // Après un arrêt, le tapis repart à sa vitesse mini : on renvoie les consignes de l'étape.
+    if (resumed && st) { tm.setSpeed(st.speed); tm.setIncline(st.incline); }
+  } finally { run.busy = false; }
+}
+function pauseRun(fromApp) {
+  run.runner?.pause();
+  if (fromApp) tm.pause(); else speak('Pause');
+  setBtns('paused');
+}
+$('r-start').onclick = () => startRun(true);
+$('r-pause').onclick = () => pauseRun(true);
 $('r-skip').onclick = () => run.runner?.skip();
 $('r-stop').onclick = () => { tm.stop(); finishRun(!run.w); };
 $('r-back').onclick = async () => {

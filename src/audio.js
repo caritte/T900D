@@ -1,5 +1,7 @@
 // Bips (Web Audio) et annonces vocales (synthèse du navigateur).
 let ctx;
+// À appeler dans un geste utilisateur : autorise le son pour la suite (démarrage depuis le tapis).
+export function unlock() { try { ctx ??= new AudioContext(); ctx.resume(); } catch { /* indisponible */ } }
 export function beep(freq = 880, ms = 150) {
   try {
     ctx ??= new AudioContext(); ctx.resume();

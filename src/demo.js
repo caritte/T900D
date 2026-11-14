@@ -2,6 +2,8 @@
 export class DemoTreadmill {
   constructor({ onData = () => {}, onLog = () => {}, onDisconnect = () => {} } = {}) {
     Object.assign(this, { onData, log: onLog, onDisconnect });
+    // Simule les boutons de la console : dispatchEvent(new CustomEvent('demo-console', { detail: 'start' | 'stop' }))
+    addEventListener('demo-console', (e) => (e.detail === 'start' ? this.start() : this.stop()));
     this.s = { speed: 0, incline: 0, tSpeed: 0, tIncline: 0, dist: 0, elapsed: 0, running: false };
   }
   get connected() { return !!this.timer; }
