@@ -1,0 +1,34 @@
+import assert from 'node:assert/strict';
+import { parseWorkout, totalDuration, WorkoutRunner } from '../src/workout.js';
+import { parseTreadmillData, cmd } from '../src/ftms.js';
+
+// Parseur
+const steps = parseWorkout(`
+# test
+5:00 @ 6 / 1 Chauffe
+repeat 2 {
+  1:00 @ 12 / 1 Vite
+  30 @ 6 Récup
+}`);
+assert.equal(steps.length, 5);
+assert.deepEqual(steps[3], { duration: 60, speed: 12, incline: 1, label: 'Vite' });
+assert.equal(totalDuration(steps), 300 + 2 * 90);
+assert.throws(() => parseWorkout('abc'), /Ligne 1/);
+assert.throws(() => parseWorkout('repeat 2 {\n1:00 @ 5'), /non fermée/);
+
+// FTMS : flags=0x0008|0x0400 (inclinaison + temps), vitesse 8.50, incl 2.5 %, ramp 0, temps 90 s
+const b = new Uint8Array([0x08, 0x04, 0x52, 0x03, 0x19, 0x00, 0x00, 0x00, 0x5a, 0x00]);
+assert.deepEqual(parseTreadmillData(new DataView(b.buffer)), { speed: 8.5, incline: 2.5, elapsed: 90 });
+assert.deepEqual([...cmd.speed(8.5)], [0x02, 0x52, 0x03]);
+assert.deepEqual([...cmd.incline(-1)], [0x03, 0xf6, 0xff]);
+
+// Moteur avec horloge simulée
+let t = 0; const calls = []; let done = false;
+const r = new WorkoutRunner(parseWorkout('0:02 @ 5\n0:02 @ 8 / 2'),
+  { setSpeed: (v) => calls.push(['v', v]), setIncline: (v) => calls.push(['i', v]) },
+  { now: () => t, onDone: () => { done = true; } });
+r.start();
+for (let i = 0; i < 20 && !done; i++) { t += 500; r.tick(); }
+assert.deepEqual(calls, [['v', 5], ['i', 0], ['v', 8], ['i', 2]]);
+assert.ok(done);
+console.log('OK');

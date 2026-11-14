@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>T900D</title>
+</head>
+<body>
+<h1>T900D</h1>
+<p><button id="connect">Connecter</button> <span id="state">déconnecté</span></p>
+
+<h2>Live</h2>
+<p>Vitesse <b id="m-speed">-</b> km/h · Pente <b id="m-incline">-</b> % · Dist <b id="m-dist">-</b> m · Temps <b id="m-time">-</b> s · FC <b id="m-hr">-</b></p>
+
+<h2>Manuel</h2>
+<p>
+  <button id="start">Start</button> <button id="stop">Stop</button>
+  Vitesse <button data-d="speed:-0.5">-</button><button data-d="speed:0.5">+</button>
+  Pente <button data-d="incline:-0.5">-</button><button data-d="incline:0.5">+</button>
+</p>
+
+<h2>Séance</h2>
+<p><select id="saved"></select> <button id="save">Enregistrer</button> <button id="del">Supprimer</button></p>
+<p><input id="name" placeholder="Nom de la séance"></p>
+<textarea id="text" rows="10" cols="40">5:00 @ 6 / 1 Échauffement
+repeat 4 {
+  1:00 @ 11 / 1 Vite
+  1:30 @ 6 Récup
+}
+5:00 @ 5 Retour au calme</textarea>
+<p id="err"></p>
+<p><button id="run">Lancer</button> <button id="pause">Pause</button> <button id="skip">Étape suivante</button> <button id="end">Arrêter</button></p>
+<p id="progress"></p>
+
+<h2>Historique</h2>
+<ul id="history"></ul>
+
+<h2>Journal BT</h2>
+<pre id="log" style="max-height:12em;overflow:auto"></pre>
+<script type="module" src="src/app.js"></script>
+</body>
+</html>
