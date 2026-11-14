@@ -34,7 +34,7 @@ $('start').onclick = () => tm.start();
 $('stop').onclick = () => tm.stop();
 document.querySelectorAll('[data-d]').forEach((b) => b.onclick = () => {
   const [k, d] = b.dataset.d.split(':');
-  target[k] = Math.max(0, +(target[k] + +d).toFixed(1));
+  target[k] = Math.max(0, +((live[k] ?? target[k]) + +d).toFixed(1)); // part de la valeur réelle du tapis
   k === 'speed' ? tm.setSpeed(target.speed) : tm.setIncline(target.incline);
 });
 
