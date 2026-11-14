@@ -2,6 +2,14 @@
 // les vitesses sans % sont absolues (marche, test). Syntaxe : voir workout.js.
 export const CATS = ['Remise en forme', 'Endurance', 'Cardio', 'Fractionné', 'Côtes', 'Test'];
 export const LEVELS = ['', 'Débutant', 'Intermédiaire', 'Confirmé'];
+export const CAT_INFO = {
+  'Remise en forme': { icon: '🌱', color: '#2fd27a', sub: 'Reprendre en douceur, marche et course alternées' },
+  Endurance: { icon: '🏃', color: '#4c8dff', sub: 'Footings à allure facile, la base du cardio' },
+  Cardio: { icon: '❤️', color: '#ff5a5f', sub: 'Allure soutenue tenue longtemps : tempo et seuil' },
+  Fractionné: { icon: '⚡', color: '#ffb020', sub: 'Efforts courts et intenses proches de la VMA' },
+  Côtes: { icon: '⛰️', color: '#a78bfa', sub: 'Travail en pente : puissance et souffle' },
+  Test: { icon: '🧪', color: '#22d3ee', sub: 'Mesurer ta VMA pour calibrer les programmes' },
+};
 
 const p = (id, cat, level, name, desc, text) => ({ id, cat, level, name, desc, text });
 const WU = (min, inc = 1) => `${min}:00 @ 60% / ${inc} Échauffement`;

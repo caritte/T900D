@@ -51,7 +51,7 @@ export function drawChart(svg, steps, { selected = -1, cursor = null, editable =
     if (onSelect) hit.addEventListener('click', () => onSelect(i));
     el('rect', {
       x: x0, y: yI(s.incline), width: Math.max(0, x1 - x0), height: bottom - yI(s.incline),
-      fill: C.incline, opacity: i === selected ? 0.85 : 0.45, stroke: '#0f1115', 'stroke-width': compact || flat ? 0 : 1, 'pointer-events': 'none',
+      fill: C.incline, opacity: i === selected ? 0.85 : 0.45, stroke: '#161a22', 'stroke-width': compact || flat ? 0 : 1, 'pointer-events': 'none',
     }, svg);
   });
 

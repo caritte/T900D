@@ -1,7 +1,7 @@
 import { Treadmill } from './ftms.js';
 import { DemoTreadmill } from './demo.js';
 import { WorkoutRunner, stats, parseWorkout } from './workout.js';
-import { PROGRAMS, CATS, LEVELS } from './programs.js';
+import { PROGRAMS, CATS, LEVELS, CAT_INFO } from './programs.js';
 import { drawChart, drawSession, LIMITS } from './chart.js';
 import { loadWorkouts, saveWorkouts, uid } from './store.js';
 import { Recorder } from './recorder.js';
@@ -56,60 +56,97 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 $('connect').onclick = () => ensureConnected();
 
 // ---------- Navigation ----------
-const views = ['home', 'edit', 'run', 'hist', 'sess'];
-const show = (v) => views.forEach((x) => { $(x).hidden = x !== v; });
+// Chaque écran ouvert ajoute une entrée d'historique : le bouton Retour d'Android remonte d'un niveau.
+const views = ['home', 'cat', 'prefs', 'edit', 'run', 'hist', 'sess'];
+let current = 'home', popping = false;
+function show(v) {
+  views.forEach((x) => { $(x).hidden = x !== v; });
+  if (v !== 'home' && v !== current && !popping) history.pushState(v, '');
+  current = v; scrollTo(0, 0);
+}
+// Où mène « retour » depuis chaque écran. Renvoyer false annule (séance en cours non confirmée).
+const backFns = {
+  cat: () => renderHome(), prefs: () => renderHome(), hist: () => renderHome(),
+  sess: () => openHist(), edit: () => backToList(), run: () => leaveRun(),
+};
+addEventListener('popstate', async () => {
+  popping = true;
+  try { if ((await backFns[current]?.()) === false) history.pushState(current, ''); } finally { popping = false; }
+});
+document.querySelectorAll('[data-back]').forEach((b) => { b.onclick = () => history.back(); });
 
-// ---------- Accueil ----------
+// ---------- Accueil et catégories ----------
 let workouts = loadWorkouts();
+let vma = +localStorage.vma || 11;
+let cat = null, level = 0; // catégorie ouverte ('mine' = mes séances), filtre de niveau
+
+function tile(parent, icon, name, sub, color, fn) {
+  const b = document.createElement('button');
+  b.className = 'tile'; b.style.setProperty('--c', color);
+  b.innerHTML = `<i>${icon}</i><b>${name}</b><small>${sub}</small>`;
+  b.onclick = fn; parent.appendChild(b);
+}
+function renderHome() {
+  cat = null; show('home');
+  $('tiles-train').replaceChildren(); $('tiles-more').replaceChildren();
+  for (const c of CATS) {
+    const n = PROGRAMS.filter((p) => p.cat === c).length;
+    tile($('tiles-train'), CAT_INFO[c].icon, c, `${n} programme${n > 1 ? 's' : ''}`, CAT_INFO[c].color, () => openCat(c));
+  }
+  tile($('tiles-train'), '⭐', 'Mes séances', `${workouts.length} perso`, '#f472b6', () => openCat('mine'));
+  tile($('tiles-train'), '🎛️', 'Course libre', 'Pilotage manuel', '#94a3b8', () => openRun(null));
+  tile($('tiles-more'), '📊', 'Historique', 'Séances et stats', '#4c8dff', () => openHist());
+  tile($('tiles-more'), '⚙️', 'Réglages', `VMA ${vma} km/h`, '#94a3b8', () => { show('prefs'); $('vma').textContent = vma + ' km/h'; });
+  allSessions().then((all) => {
+    const wk = all.filter((x) => x.start >= Date.now() - 7 * 864e5), sum = (k) => wk.reduce((a, x) => a + x[k], 0);
+    $('week').innerHTML = cell(wk.length, 'séances · 7 j') + cell((sum('distance') / 1000).toFixed(1), 'km · 7 j') + cell(fmt(sum('duration')), 'temps · 7 j');
+  });
+}
 // Carte d'une séance. builtin : programme intégré (non supprimable, « Personnaliser » en fait une copie).
 function addCard(parent, w, builtin) {
   const c = document.createElement('div');
   c.className = 'card wk';
-  c.innerHTML = `<div class="top"><b>${esc(w.name)}</b>${builtin ? `<span class="badge">${LEVELS[w.level]}</span>` : ''}</div>
-    <svg></svg><p class="muted">${summary(w.steps)}${w.desc ? '<br>' + esc(w.desc) : ''}</p>
+  c.innerHTML = `<div class="top"><b>${esc(w.name)}</b>${builtin ? `<span class="badge l${w.level}">${LEVELS[w.level]}</span>` : ''}</div>
+    <svg></svg><div class="muted">${summary(w.steps)}${w.desc ? '<br>' + esc(w.desc) : ''}</div>
     <div class="acts"><button class="primary" data-a="run">▶ Lancer</button>
     <button class="ghost" data-a="edit">${builtin ? 'Personnaliser' : 'Modifier'}</button>${builtin ? '' : '<button class="ghost" data-a="del">🗑</button>'}</div>`;
   c.onclick = (e) => {
     const a = e.target.dataset.a;
     if (a === 'run') openRun(w);
     if (a === 'edit') openEdit(builtin ? { id: uid(), name: w.name, steps: w.steps } : w);
-    if (a === 'del' && confirm(`Supprimer « ${w.name} » ?`)) { workouts = workouts.filter((x) => x !== w); saveWorkouts(workouts); renderHome(); }
+    if (a === 'del' && confirm(`Supprimer « ${w.name} » ?`)) { workouts = workouts.filter((x) => x !== w); saveWorkouts(workouts); renderCat(); }
   };
   parent.appendChild(c);
   drawChart(c.querySelector('svg'), w.steps, { compact: true });
 }
-let vma = +localStorage.vma || 11;
-$('f-cat').innerHTML = '<option value="">Toutes catégories</option>' + CATS.map((c) => `<option>${c}</option>`).join('');
-$('f-level').innerHTML = '<option value="0">Tous niveaux</option>' + LEVELS.slice(1).map((l, i) => `<option value="${i + 1}">${l}</option>`).join('');
-$('f-cat').value = localStorage.fcat ?? CATS[0]; $('f-level').value = localStorage.flevel ?? '0';
-function renderProgs() {
-  const cat = localStorage.fcat = $('f-cat').value, level = +(localStorage.flevel = $('f-level').value);
-  $('vma').textContent = vma + ' km/h';
-  $('plist').replaceChildren();
-  PROGRAMS.filter((p) => (!cat || p.cat === cat) && (!level || p.level === level))
-    .forEach((p) => addCard($('plist'), { ...p, steps: parseWorkout(p.text, vma) }, true));
+function openCat(c) { cat = c; level = 0; renderCat(); }
+function renderCat() {
+  const mine = cat === 'mine';
+  show('cat');
+  $('c-title').textContent = mine ? '⭐ Mes séances' : `${CAT_INFO[cat].icon} ${cat}`;
+  $('c-sub').textContent = mine ? 'Tes séances créées ou personnalisées.' : `${CAT_INFO[cat].sub}. Vitesses calculées pour une VMA de ${vma} km/h.`;
+  $('new').hidden = !mine;
+  $('c-list').replaceChildren(); $('c-levels').replaceChildren();
+  if (mine) {
+    workouts.forEach((w) => addCard($('c-list'), w, false));
+    if (!workouts.length) $('c-list').innerHTML = '<p class="muted">Aucune séance perso. Crée-en une, ou personnalise un programme.</p>';
+    return;
+  }
+  const list = PROGRAMS.filter((p) => p.cat === cat), levels = [...new Set(list.map((p) => p.level))];
+  if (levels.length > 1) for (const l of [0, ...levels]) {
+    const b = document.createElement('button');
+    b.textContent = l ? LEVELS[l] : 'Tous'; b.classList.toggle('on', l === level);
+    b.onclick = () => { level = l; renderCat(); };
+    $('c-levels').appendChild(b);
+  }
+  list.filter((p) => !level || p.level === level).forEach((p) => addCard($('c-list'), { ...p, steps: parseWorkout(p.text, vma) }, true));
 }
-$('f-cat').onchange = $('f-level').onchange = renderProgs;
-$('progs').addEventListener('click', (e) => {
+const backToList = () => (cat ? renderCat() : renderHome());
+$('prefs').addEventListener('click', (e) => {
   const d = e.target.dataset.v; if (!d) return;
-  vma = clamp(vma + +d, 7, 22); localStorage.vma = vma; renderProgs();
+  vma = clamp(vma + +d, 7, 22); localStorage.vma = vma; $('vma').textContent = vma + ' km/h';
 });
-function setTab(t) {
-  localStorage.tab = t;
-  for (const k of ['progs', 'mine']) { $(k).hidden = k !== t; $('tab-' + k).classList.toggle('on', k === t); }
-}
-$('tab-progs').onclick = () => setTab('progs');
-$('tab-mine').onclick = () => setTab('mine');
-function renderHome() {
-  show('home'); setTab(localStorage.tab || 'progs');
-  renderProgs();
-  $('list').replaceChildren();
-  workouts.forEach((w) => addCard($('list'), w, false));
-  if (!workouts.length) $('list').innerHTML = '<p class="muted">Aucune séance perso. Crée-en une, ou personnalise un programme.</p>';
-}
 $('new').onclick = () => openEdit(null);
-$('free').onclick = () => openRun(null);
-$('hist-open').onclick = () => openHist();
 $('export').onclick = async () => {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify({ workouts, sessions: await allSessions() })], { type: 'application/json' }));
@@ -122,7 +159,7 @@ $('file').onchange = async (e) => {
     const list = Array.isArray(data) ? data : data.workouts ?? [];
     workouts.push(...list.filter((w) => w.name && Array.isArray(w.steps)).map((w) => ({ ...w, id: uid() })));
     for (const x of data.sessions ?? []) if (x.id && x.start) await putSession(x);
-    saveWorkouts(workouts); renderHome();
+    saveWorkouts(workouts); alert('Import terminé');
   } catch { alert('Fichier invalide'); }
 };
 
@@ -168,13 +205,12 @@ $('edit').addEventListener('click', (e) => {
   }
   renderEdit();
 });
-$('e-back').onclick = renderHome;
 $('e-save').onclick = () => {
   ed.name = $('e-name').value.trim() || 'Séance du ' + new Date().toLocaleDateString('fr-FR');
   const w = { id: ed.id, name: ed.name, steps: ed.steps };
   const i = workouts.findIndex((x) => x.id === w.id);
   i >= 0 ? workouts[i] = w : workouts.push(w);
-  saveWorkouts(workouts); localStorage.tab = 'mine'; renderHome();
+  saveWorkouts(workouts); cat = 'mine'; history.back();
 };
 
 // ---------- Course ----------
@@ -214,7 +250,7 @@ function openRun(w) {
   run = { w, runner: null, snap: null, rec: null, cue: {} };
   $('r-title').textContent = w?.name ?? 'Course libre';
   $('r-info').textContent = (w ? summary(w.steps) + ' · ' : '') + 'Appuie sur Start du tapis ou sur Démarrer.';
-  setBtns('idle'); show('run'); drawRun(); showRec();
+  setBtns('idle'); $('r-now').hidden = true; show('run'); drawRun(); showRec();
   unlock(); // le clic qui ouvre cet écran autorise le son, même si le départ vient du tapis
   ensureConnected(true).then((ok) => ok && keepAwake());
 }
@@ -243,8 +279,10 @@ function onTick(s) {
     if (sec >= 1 && sec <= 3) bip(880, 150);
     if (sec === 10 && s.step.duration >= 20) speak(s.next ? `Dans 10 secondes : ${spoken(s.next)}` : 'Fin de séance dans 10 secondes');
   }
-  $('r-info').textContent = `Étape ${s.idx + 1}/${run.w.steps.length} · ${s.step.speed} km/h / ${s.step.incline}% · reste ${fmt(s.remaining)}` +
-    (s.next ? ` · ensuite ${s.next.speed} km/h / ${s.next.incline}%` : ' · dernière étape');
+  $('r-now').hidden = false; $('r-info').textContent = '';
+  $('r-step').textContent = `Étape ${s.idx + 1}/${run.w.steps.length}${s.step.label ? ' · ' + s.step.label : ''} · ${s.step.speed} km/h · ${s.step.incline} %`;
+  $('r-remain').textContent = fmt(Math.ceil(s.remaining));
+  $('r-next').textContent = s.next ? `${s.next.speed} km/h · ${s.next.incline} %` : 'Fin de séance';
 }
 // Après une reconnexion : si le tapis tourne encore on renvoie les consignes, sinon on met en pause.
 function resync() {
@@ -258,7 +296,7 @@ function resync() {
 async function finishRun(completed) {
   const rec = run.rec;
   run.runner?.pause(); run.runner = null; run.snap = null; run.rec = null; run.cue = {};
-  wake?.release?.(); setBtns('idle');
+  wake?.release?.(); setBtns('idle'); $('r-now').hidden = true;
   if (rec && rec.t > 10) await putSession(rec.summary(completed));
   drawRun();
   $('r-info').textContent = rec && rec.t > 10
@@ -296,14 +334,14 @@ $('r-start').onclick = () => startRun(true);
 $('r-pause').onclick = () => pauseRun(true);
 $('r-skip').onclick = () => run.runner?.skip();
 $('r-stop').onclick = () => { tm.stop(); finishRun(!run.w); };
-$('r-back').onclick = async () => {
+async function leaveRun() {
   if (run.state !== 'idle') {
-    if (!confirm('Arrêter la séance en cours ?')) return;
+    if (!confirm('Arrêter la séance en cours ?')) return false;
     tm.stop(); await finishRun(!run.w);
   }
-  renderHome();
-};
-document.querySelector('[data-r]').parentElement.addEventListener('click', (e) => {
+  backToList();
+}
+$('adj').addEventListener('click', (e) => {
   const d = e.target.dataset.r; if (!d || !tm?.connected) return;
   const [k, v] = d.split(':'), lim = LIMITS[k];
   const val = clamp(+((live[k] ?? 0) + +v).toFixed(1), k === 'speed' ? lim.min : 0, lim.max);
@@ -312,7 +350,7 @@ document.querySelector('[data-r]').parentElement.addEventListener('click', (e) =
 
 // ---------- Historique ----------
 let sessions = [], sess;
-const cell = (v, l, cls = '') => `<div class="${cls}"><b>${v}</b><small>${l}</small></div>`;
+function cell(v, l, cls = '') { return `<div><b class="${cls}">${v}</b><small>${l}</small></div>`; }
 const km = (m) => (m / 1000).toFixed(2);
 const pace = (v) => v > 0 ? fmt(3600 / v) : '-';
 async function openHist() {
@@ -345,7 +383,6 @@ function renderHist() {
   if (!list.length) $('h-list').innerHTML = '<p class="muted">Aucune séance sur cette période.</p>';
 }
 for (const id of ['h-period', 'h-name', 'h-sort']) $(id).onchange = renderHist;
-$('h-back').onclick = renderHome;
 function openSess(x) {
   sess = x; show('sess');
   $('s-title').textContent = x.name;
@@ -355,8 +392,7 @@ function openSess(x) {
     cell(x.avgSpeed, 'km/h moy.', 'sp') + cell(x.maxSpeed, 'km/h max', 'sp') + cell(pace(x.avgSpeed), 'allure /km') +
     cell(x.ascent, 'm D+', 'in') + cell(x.hrAvg || '-', 'bpm moy.', 'hr') + cell(x.hrMax || '-', 'bpm max', 'hr');
 }
-$('s-back').onclick = openHist;
-$('s-del').onclick = async () => { if (confirm('Supprimer cette séance de l\'historique ?')) { await delSession(sess.id); openHist(); } };
+$('s-del').onclick = async () => { if (confirm('Supprimer cette séance de l\'historique ?')) { await delSession(sess.id); history.back(); } };
 
 renderHome(); setStatus();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

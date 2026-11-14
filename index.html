@@ -2,8 +2,8 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#0f1115">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0d12">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="stylesheet" href="style.css">
@@ -11,97 +11,126 @@
 </head>
 <body>
 <header id="bar">
-  <b>T900D</b>
+  <b class="logo">T900D</b>
   <span id="status"><i id="dot"></i><span id="state">déconnecté</span></span>
-  <button id="connect" class="ghost">Connecter</button>
+  <button id="connect" class="ghost sm">Connecter</button>
 </header>
 
 <main id="home" class="view">
-  <div class="tabs"><button id="tab-progs">Programmes</button><button id="tab-mine">Mes séances</button></div>
-  <section id="progs">
-    <div class="card ctl"><span>Ma VMA <b id="vma"></b></span><span><button data-v="-0.5">−</button><button data-v="0.5">+</button></span></div>
-    <p class="muted">Les vitesses des programmes sont calculées à partir de ta VMA (vitesse maximale tenable environ 6 minutes). Repères : débutant 9–11, intermédiaire 12–14, confirmé 15 et plus. Pour la mesurer : catégorie Test.</p>
-    <div class="row"><select id="f-cat"></select><select id="f-level"></select></div>
-    <div id="plist"></div>
-  </section>
-  <section id="mine" hidden>
-    <div class="row"><h2>Mes séances</h2><button id="new" class="primary">+ Nouvelle</button></div>
-    <div id="list"></div>
-  </section>
-  <div class="row"><button id="free" class="ghost">Course libre</button><button id="hist-open" class="ghost">Historique &amp; stats</button></div>
-  <details>
-    <summary>Outils</summary>
-    <p><button id="export" class="ghost">Exporter</button>
-       <button id="import" class="ghost">Importer</button>
-       <input id="file" type="file" accept="application/json" hidden></p>
-    <p><label><input type="checkbox" id="p-beep"> Bips</label> &nbsp; <label><input type="checkbox" id="p-voice"> Annonces vocales</label></p>
-    <pre id="log"></pre>
-  </details>
+  <div id="week" class="metrics"></div>
+  <h3>Entraînements</h3>
+  <div id="tiles-train" class="tiles"></div>
+  <h3>Suivi</h3>
+  <div id="tiles-more" class="tiles"></div>
+</main>
+
+<main id="cat" class="view" hidden>
+  <div class="head"><button data-back class="ghost sm">‹</button><h2 id="c-title"></h2>
+    <button id="new" class="primary sm" hidden>+ Nouvelle</button></div>
+  <p id="c-sub" class="muted"></p>
+  <div id="c-levels" class="chips"></div>
+  <div id="c-list" class="grid"></div>
+</main>
+
+<main id="prefs" class="view" hidden>
+  <div class="head"><button data-back class="ghost sm">‹</button><h2>Réglages</h2></div>
+  <div class="grid">
+    <section class="card">
+      <div class="ctl"><span>Ma VMA <b id="vma" class="sp"></b></span><span><button data-v="-0.5">−</button><button data-v="0.5">+</button></span></div>
+      <p class="muted">Vitesse maximale tenable environ 6 minutes. Les vitesses des programmes en sont déduites. Repères : débutant 9–11, intermédiaire 12–14, confirmé 15 et plus. Pour la mesurer : catégorie Test.</p>
+    </section>
+    <section class="card">
+      <p><label><input type="checkbox" id="p-beep"> Bips avant les changements d'étape</label></p>
+      <p><label><input type="checkbox" id="p-voice"> Annonces vocales</label></p>
+      <div class="acts"><button id="export" class="ghost">Exporter mes données</button><button id="import" class="ghost">Importer</button></div>
+      <input id="file" type="file" accept="application/json" hidden>
+    </section>
+    <details class="card"><summary>Journal Bluetooth</summary><pre id="log"></pre></details>
+  </div>
 </main>
 
 <main id="edit" class="view" hidden>
-  <div class="row"><button id="e-back" class="ghost">‹ Retour</button><button id="e-save" class="primary">Enregistrer</button></div>
-  <input id="e-name" placeholder="Nom de la séance">
-  <svg id="chart-edit" class="chart big"></svg>
-  <p id="e-stats" class="muted"></p>
-  <section class="card">
-    <div class="row"><b id="e-title"></b>
-      <span><button data-a="left" class="ghost">←</button><button data-a="right" class="ghost">→</button></span></div>
-    <div class="ctl"><span>Durée <b id="e-dur"></b></span>
-      <span><button data-a="dur:-60">−1m</button><button data-a="dur:-15">−15s</button><button data-a="dur:15">+15s</button><button data-a="dur:60">+1m</button></span></div>
-    <div class="ctl"><span class="sp">Vitesse <b id="e-spd"></b></span>
-      <span><button data-a="spd:-0.5">−</button><button data-a="spd:0.5">+</button></span></div>
-    <div class="ctl"><span class="in">Pente <b id="e-inc"></b></span>
-      <span><button data-a="inc:-1">−</button><button data-a="inc:1">+</button></span></div>
-    <div class="row">
-      <button data-a="add" class="primary">+ Étape</button>
-      <button data-a="repeat" class="ghost">Répéter…</button>
-      <button data-a="del" class="danger">Supprimer</button>
+  <div class="head"><button data-back class="ghost sm">‹</button><input id="e-name" placeholder="Nom de la séance">
+    <button id="e-save" class="primary sm">Enregistrer</button></div>
+  <div class="split">
+    <div>
+      <svg id="chart-edit" class="chart big"></svg>
+      <p id="e-stats" class="muted"></p>
+      <p class="muted hint">Touche une zone du graphe, puis tire les poignées : carré bleu = pente, rond orange = vitesse.</p>
     </div>
-  </section>
-  <p class="muted">Touche une zone du graphe pour la sélectionner, puis tire les poignées : carré bleu = pente, rond orange = vitesse.</p>
+    <section class="card">
+      <div class="ctl"><b id="e-title"></b>
+        <span><button data-a="left" class="ghost">←</button><button data-a="right" class="ghost">→</button></span></div>
+      <div class="ctl"><span>Durée <b id="e-dur"></b></span>
+        <span><button data-a="dur:-60">−1m</button><button data-a="dur:-15">−15s</button><button data-a="dur:15">+15s</button><button data-a="dur:60">+1m</button></span></div>
+      <div class="ctl"><span>Vitesse <b id="e-spd" class="sp"></b></span>
+        <span><button data-a="spd:-0.5">−</button><button data-a="spd:0.5">+</button></span></div>
+      <div class="ctl"><span>Pente <b id="e-inc" class="in"></b></span>
+        <span><button data-a="inc:-1">−</button><button data-a="inc:1">+</button></span></div>
+      <div class="acts">
+        <button data-a="add" class="primary">+ Étape</button>
+        <button data-a="repeat" class="ghost">Répéter…</button>
+        <button data-a="del" class="danger">Supprimer</button>
+      </div>
+    </section>
+  </div>
 </main>
 
 <main id="run" class="view" hidden>
-  <div class="row"><button id="r-back" class="ghost">‹ Retour</button><b id="r-title"></b></div>
-  <svg id="chart-run" class="chart"></svg>
-  <div class="metrics">
-    <div class="sp"><b id="m-speed">-</b><small>km/h</small></div>
-    <div class="in"><b id="m-incline">-</b><small>% pente</small></div>
-    <div class="hr"><b id="m-hr">-</b><small>bpm</small></div>
-    <div><b id="m-dist">-</b><small>km</small></div>
-    <div><b id="m-time">-</b><small>temps</small></div>
-    <div><b id="m-kcal">-</b><small>kcal</small></div>
+  <div class="head"><button data-back class="ghost sm">‹</button><h2 id="r-title"></h2></div>
+  <div class="split">
+    <div>
+      <svg id="chart-run" class="chart tall"></svg>
+      <div id="r-now" class="now" hidden>
+        <div><small id="r-step"></small><b id="r-remain"></b></div>
+        <div class="next"><small>Ensuite</small><span id="r-next"></span></div>
+      </div>
+      <p id="r-info" class="muted"></p>
+    </div>
+    <div>
+      <div class="metrics">
+        <div><b id="m-speed" class="sp">-</b><small>km/h</small></div>
+        <div><b id="m-incline" class="in">-</b><small>% pente</small></div>
+        <div><b id="m-hr" class="hr">-</b><small>bpm</small></div>
+        <div><b id="m-dist">-</b><small>km</small></div>
+        <div><b id="m-time">-</b><small>temps</small></div>
+        <div><b id="m-kcal">-</b><small>kcal</small></div>
+      </div>
+      <div class="acts big-btns">
+        <button id="r-start" class="primary">Démarrer</button>
+        <button id="r-pause" hidden>Pause</button>
+        <button id="r-skip" hidden>Suivante</button>
+        <button id="r-stop" class="danger" hidden>Arrêter</button>
+      </div>
+      <div id="adj" class="adj">
+        <span>Vitesse <button data-r="speed:-0.5">−</button><button data-r="speed:0.5">+</button></span>
+        <span>Pente <button data-r="incline:-1">−</button><button data-r="incline:1">+</button></span>
+      </div>
+    </div>
   </div>
-  <p id="r-info" class="muted"></p>
-  <div class="row big-btns">
-    <button id="r-start" class="primary">Démarrer</button>
-    <button id="r-pause" hidden>Pause</button>
-    <button id="r-skip" hidden>Suivante</button>
-    <button id="r-stop" class="danger" hidden>Arrêter</button>
-  </div>
-  <div class="ctl adj"><span>Ajuster en direct</span>
-    <span>Vit <button data-r="speed:-0.5">−</button><button data-r="speed:0.5">+</button>
-          Pente <button data-r="incline:-1">−</button><button data-r="incline:1">+</button></span></div>
 </main>
+
 <main id="hist" class="view" hidden>
-  <div class="row"><button id="h-back" class="ghost">‹ Retour</button><b>Historique</b></div>
-  <div class="row">
+  <div class="head"><button data-back class="ghost sm">‹</button><h2>Historique</h2></div>
+  <div class="filters">
     <select id="h-period"><option value="7">7 jours</option><option value="30" selected>30 jours</option><option value="365">1 an</option><option value="0">Tout</option></select>
     <select id="h-name"></select>
     <select id="h-sort"><option value="start">Par date</option><option value="distance">Par distance</option><option value="duration">Par durée</option><option value="avgSpeed">Par vitesse</option></select>
   </div>
-  <div id="h-totals" class="metrics"></div>
-  <div id="h-list"></div>
+  <div id="h-totals" class="metrics six"></div>
+  <div id="h-list" class="grid"></div>
 </main>
 
 <main id="sess" class="view" hidden>
-  <div class="row"><button id="s-back" class="ghost">‹ Retour</button><button id="s-del" class="danger">Supprimer</button></div>
-  <h2 id="s-title"></h2>
+  <div class="head"><button data-back class="ghost sm">‹</button><h2 id="s-title"></h2><button id="s-del" class="danger sm">Supprimer</button></div>
   <p id="s-date" class="muted"></p>
-  <svg id="chart-sess" class="chart"></svg>
-  <p class="muted"><span style="color:var(--in)">■</span> pente · <span style="color:var(--sp)">▬</span> vitesse · <span style="color:var(--bad)">▬</span> fréquence cardiaque</p>
-  <div id="s-stats" class="metrics"></div>
+  <div class="split">
+    <div>
+      <svg id="chart-sess" class="chart tall"></svg>
+      <p class="muted"><span style="color:var(--in)">■</span> pente · <span style="color:var(--sp)">▬</span> vitesse · <span style="color:var(--bad)">▬</span> fréquence cardiaque</p>
+    </div>
+    <div id="s-stats" class="metrics"></div>
+  </div>
 </main>
 <script type="module" src="src/app.js"></script>
 </body>
