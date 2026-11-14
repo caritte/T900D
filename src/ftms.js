@@ -41,6 +41,7 @@ export class Treadmill {
     this.onData = onData || (() => {});
     this.log = onLog || (() => {});
     this.onDisconnect = onDisconnect || (() => {});
+    this.rx = 0;
     this.queue = Promise.resolve(); // le Control Point n'accepte qu'une écriture à la fois
   }
 
@@ -63,7 +64,7 @@ export class Treadmill {
     const svc = await this.server.getPrimaryService(UUID.service); // échoue si pas FTMS
     const data = await svc.getCharacteristic(UUID.treadmillData);
     data.addEventListener('characteristicvaluechanged', (e) => {
-      this.log('RX ' + [...new Uint8Array(e.target.value.buffer)].map((b) => b.toString(16).padStart(2, '0')).join(' '));
+      if (this.rx++ % 40 === 0) this.log('RX ' + [...new Uint8Array(e.target.value.buffer)].map((b) => b.toString(16).padStart(2, '0')).join(' '));
       this.onData(parseTreadmillData(e.target.value));
     });
     await data.startNotifications();
