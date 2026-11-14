@@ -12,5 +12,7 @@ const tx = async (mode, fn) => {
   });
 };
 export const putSession = (s) => tx('readwrite', (st) => st.put(s));
-export const allSessions = () => tx('readonly', (st) => st.getAll());
+// Les séances antérieures aux profils n'ont pas de champ user : elles reviennent à legacyUser.
+export const allSessions = async (user, legacyUser) =>
+  (await tx('readonly', (st) => st.getAll())).filter((s) => (s.user ?? legacyUser) === user);
 export const delSession = (id) => tx('readwrite', (st) => st.delete(id));

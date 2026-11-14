@@ -44,6 +44,7 @@ export class Treadmill {
     this.onReconnect = onReconnect || (() => {});
     this.onStatus = onStatus || (() => {});
     this.rx = 0;
+    this.listened = new WeakSet();
     this.queue = Promise.resolve(); // le Control Point n'accepte qu'une écriture à la fois
   }
 
@@ -58,7 +59,11 @@ export class Treadmill {
       this.log('Filtre FTMS sans résultat, scan ouvert : ' + e.message);
       return navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [UUID.service] });
     });
-    this.device.addEventListener('gattserverdisconnected', () => this.#lost());
+    // Un seul écouteur par appareil, même après une déconnexion manuelle suivie d'une reconnexion.
+    if (!this.listened.has(this.device)) {
+      this.listened.add(this.device);
+      this.device.addEventListener('gattserverdisconnected', () => this.#lost());
+    }
     this.manual = false;
     await this.#setup();
   }

@@ -3,7 +3,7 @@ import { DemoTreadmill } from './demo.js';
 import { WorkoutRunner, stats, parseWorkout } from './workout.js';
 import { PROGRAMS, CATS, LEVELS, CAT_INFO } from './programs.js';
 import { drawChart, drawSession, LIMITS } from './chart.js';
-import { loadWorkouts, saveWorkouts, uid } from './store.js';
+import { loadWorkouts, saveWorkouts, uid, loadUsers, saveUsers, currentUser, setCurrentUser, loadVma, saveVma, dropUserData, LEGACY_USER } from './store.js';
 import { Recorder } from './recorder.js';
 import { putSession, allSessions, delSession } from './db.js';
 import { beep, say, unlock } from './audio.js';
@@ -25,6 +25,7 @@ const setStatus = () => {
   $('dot').classList.toggle('on', !!on);
   $('state').textContent = on ? tm.device.name : tm?.reconnecting ? 'reconnexion…' : 'déconnecté';
   $('connect').hidden = !!on;
+  $('disconnect').hidden = !on && !tm?.reconnecting;
 };
 function onData(d) {
   const prev = live.speed;
@@ -54,10 +55,14 @@ async function ensureConnected(quiet = false) {
 const keepAwake = async () => { try { wake = await navigator.wakeLock?.request('screen'); } catch { /* ignoré */ } };
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && run?.runner?.running) keepAwake(); });
 $('connect').onclick = () => ensureConnected();
+$('disconnect').onclick = () => {
+  if (run && run.state !== 'idle' && !confirm('Une séance est en cours. Déconnecter quand même ? Le tapis ne sera plus piloté.')) return;
+  tm.disconnect(); setTimeout(setStatus, 100);
+};
 
 // ---------- Navigation ----------
 // Chaque écran ouvert ajoute une entrée d'historique : le bouton Retour d'Android remonte d'un niveau.
-const views = ['home', 'cat', 'prefs', 'edit', 'run', 'hist', 'sess'];
+const views = ['users', 'home', 'cat', 'prefs', 'edit', 'run', 'hist', 'sess'];
 let current = 'home', popping = false;
 function show(v) {
   views.forEach((x) => { $(x).hidden = x !== v; });
@@ -66,6 +71,7 @@ function show(v) {
 }
 // Où mène « retour » depuis chaque écran. Renvoyer false annule (séance en cours non confirmée).
 const backFns = {
+  users: () => (currentUser() ? renderHome() : false),
   cat: () => renderHome(), prefs: () => renderHome(), hist: () => renderHome(),
   sess: () => openHist(), edit: () => backToList(), run: () => leaveRun(),
 };
@@ -76,8 +82,51 @@ addEventListener('popstate', async () => {
 document.querySelectorAll('[data-back]').forEach((b) => { b.onclick = () => history.back(); });
 
 // ---------- Accueil et catégories ----------
-let workouts = loadWorkouts();
-let vma = +localStorage.vma || 11;
+let workouts = [], vma = 11;
+const mySessions = () => allSessions(currentUser(), LEGACY_USER);
+
+// ---------- Profils ----------
+let users = loadUsers();
+const COLORS = ['#f472b6', '#4c8dff', '#2fd27a', '#ffb020', '#a78bfa', '#22d3ee', '#ff5a5f'];
+const me = () => users.find((u) => u.id === currentUser());
+function selectUser(id) {
+  setCurrentUser(id); workouts = loadWorkouts(); vma = loadVma();
+  $('who').textContent = '👤 ' + me().name;
+}
+function renderUsers() {
+  show('users');
+  $('u-list').replaceChildren();
+  users.forEach((u, i) => {
+    const b = document.createElement('button');
+    b.className = 'tile' + (u.id === currentUser() ? ' cur' : ''); b.style.setProperty('--c', COLORS[i % COLORS.length]);
+    b.innerHTML = `<i class="avatar">${esc(u.name[0].toUpperCase())}</i><b>${esc(u.name)}</b><small>${u.id === currentUser() ? 'Profil actif' : 'Choisir'}</small>`;
+    b.onclick = () => { selectUser(u.id); history.back(); };
+    $('u-list').appendChild(b);
+  });
+}
+$('who').onclick = () => {
+  if (run && run.state !== 'idle') return alert('Termine la séance en cours avant de changer de profil.');
+  if (current !== 'users') renderUsers();
+};
+$('u-add').onclick = () => {
+  const name = prompt('Prénom du nouveau profil ?')?.trim();
+  if (!name) return;
+  users.push({ id: uid(), name }); saveUsers(users); renderUsers();
+};
+$('u-rename').onclick = () => {
+  const name = prompt('Nouveau prénom ?', me().name)?.trim();
+  if (!name) return;
+  me().name = name; saveUsers(users); selectUser(currentUser()); $('u-name').textContent = name;
+};
+$('u-del').onclick = async () => {
+  if (users.length < 2) return alert('Il faut garder au moins un profil.');
+  if (!confirm(`Supprimer le profil « ${me().name} » avec ses séances perso et tout son historique ?`)) return;
+  const id = currentUser();
+  for (const x of await mySessions()) await delSession(x.id);
+  dropUserData(id);
+  users = users.filter((u) => u.id !== id); saveUsers(users);
+  localStorage.removeItem('user'); location.reload();
+};
 let cat = null, level = 0; // catégorie ouverte ('mine' = mes séances), filtre de niveau
 
 function tile(parent, icon, name, sub, color, fn) {
@@ -88,6 +137,7 @@ function tile(parent, icon, name, sub, color, fn) {
 }
 function renderHome() {
   cat = null; show('home');
+  $('hello').textContent = 'Bonjour ' + me().name;
   $('tiles-train').replaceChildren(); $('tiles-more').replaceChildren();
   for (const c of CATS) {
     const n = PROGRAMS.filter((p) => p.cat === c).length;
@@ -96,8 +146,8 @@ function renderHome() {
   tile($('tiles-train'), '⭐', 'Mes séances', `${workouts.length} perso`, '#f472b6', () => openCat('mine'));
   tile($('tiles-train'), '🎛️', 'Course libre', 'Pilotage manuel', '#94a3b8', () => openRun(null));
   tile($('tiles-more'), '📊', 'Historique', 'Séances et stats', '#4c8dff', () => openHist());
-  tile($('tiles-more'), '⚙️', 'Réglages', `VMA ${vma} km/h`, '#94a3b8', () => { show('prefs'); $('vma').textContent = vma + ' km/h'; });
-  allSessions().then((all) => {
+  tile($('tiles-more'), '⚙️', 'Réglages', `VMA ${vma} km/h`, '#94a3b8', () => { show('prefs'); $('vma').textContent = vma + ' km/h'; $('u-name').textContent = me().name; });
+  mySessions().then((all) => {
     const wk = all.filter((x) => x.start >= Date.now() - 7 * 864e5), sum = (k) => wk.reduce((a, x) => a + x[k], 0);
     $('week').innerHTML = cell(wk.length, 'séances · 7 j') + cell((sum('distance') / 1000).toFixed(1), 'km · 7 j') + cell(fmt(sum('duration')), 'temps · 7 j');
   });
@@ -144,13 +194,13 @@ function renderCat() {
 const backToList = () => (cat ? renderCat() : renderHome());
 $('prefs').addEventListener('click', (e) => {
   const d = e.target.dataset.v; if (!d) return;
-  vma = clamp(vma + +d, 7, 22); localStorage.vma = vma; $('vma').textContent = vma + ' km/h';
+  vma = clamp(vma + +d, 7, 22); saveVma(vma); $('vma').textContent = vma + ' km/h';
 });
 $('new').onclick = () => openEdit(null);
 $('export').onclick = async () => {
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([JSON.stringify({ workouts, sessions: await allSessions() })], { type: 'application/json' }));
-  a.download = 't900d-sauvegarde.json'; a.click();
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({ user: me().name, workouts, sessions: await mySessions() })], { type: 'application/json' }));
+  a.download = `t900d-${me().name}.json`; a.click();
 };
 $('import').onclick = () => $('file').click();
 $('file').onchange = async (e) => {
@@ -158,7 +208,7 @@ $('file').onchange = async (e) => {
     const data = JSON.parse(await e.target.files[0].text());
     const list = Array.isArray(data) ? data : data.workouts ?? [];
     workouts.push(...list.filter((w) => w.name && Array.isArray(w.steps)).map((w) => ({ ...w, id: uid() })));
-    for (const x of data.sessions ?? []) if (x.id && x.start) await putSession(x);
+    for (const x of data.sessions ?? []) if (x.id && x.start) await putSession({ ...x, user: currentUser() });
     saveWorkouts(workouts); alert('Import terminé');
   } catch { alert('Fichier invalide'); }
 };
@@ -297,7 +347,7 @@ async function finishRun(completed) {
   const rec = run.rec;
   run.runner?.pause(); run.runner = null; run.snap = null; run.rec = null; run.cue = {};
   wake?.release?.(); setBtns('idle'); $('r-now').hidden = true;
-  if (rec && rec.t > 10) await putSession(rec.summary(completed));
+  if (rec && rec.t > 10) await putSession({ ...rec.summary(completed), user: currentUser() });
   drawRun();
   $('r-info').textContent = rec && rec.t > 10
     ? `${completed ? 'Séance terminée 🎉' : 'Séance arrêtée'} · ${fmt(rec.t)} · ${(rec.dist / 1000).toFixed(2)} km — enregistrée dans l'historique`
@@ -354,7 +404,7 @@ function cell(v, l, cls = '') { return `<div><b class="${cls}">${v}</b><small>${
 const km = (m) => (m / 1000).toFixed(2);
 const pace = (v) => v > 0 ? fmt(3600 / v) : '-';
 async function openHist() {
-  sessions = await allSessions();
+  sessions = await mySessions();
   const names = [...new Set(sessions.map((x) => x.name))].sort();
   const cur = $('h-name').value;
   $('h-name').innerHTML = '<option value="">Toutes</option>' + names.map((n) => `<option${n === cur ? ' selected' : ''}>${esc(n)}</option>`).join('');
@@ -394,5 +444,7 @@ function openSess(x) {
 }
 $('s-del').onclick = async () => { if (confirm('Supprimer cette séance de l\'historique ?')) { await delSession(sess.id); history.back(); } };
 
-renderHome(); setStatus();
+// Dernier profil utilisé, sinon choix du profil au premier lancement.
+if (me()) { selectUser(currentUser()); renderHome(); } else renderUsers();
+setStatus();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

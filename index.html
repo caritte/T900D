@@ -13,10 +13,18 @@
 <header id="bar">
   <b class="logo">T900D</b>
   <span id="status"><i id="dot"></i><span id="state">déconnecté</span></span>
+  <button id="who" class="ghost sm">👤 Profil</button>
   <button id="connect" class="ghost sm">Connecter</button>
+  <button id="disconnect" class="ghost sm" hidden>Déconnecter</button>
 </header>
 
-<main id="home" class="view">
+<main id="users" class="view" hidden>
+  <div class="head"><h2>Qui s'entraîne ?</h2><button id="u-add" class="primary sm">+ Nouveau profil</button></div>
+  <div id="u-list" class="tiles"></div>
+</main>
+
+<main id="home" class="view" hidden>
+  <h2 id="hello"></h2>
   <div id="week" class="metrics"></div>
   <h3>Entraînements</h3>
   <div id="tiles-train" class="tiles"></div>
@@ -38,6 +46,10 @@
     <section class="card">
       <div class="ctl"><span>Ma VMA <b id="vma" class="sp"></b></span><span><button data-v="-0.5">−</button><button data-v="0.5">+</button></span></div>
       <p class="muted">Vitesse maximale tenable environ 6 minutes. Les vitesses des programmes en sont déduites. Repères : débutant 9–11, intermédiaire 12–14, confirmé 15 et plus. Pour la mesurer : catégorie Test.</p>
+    </section>
+    <section class="card">
+      <p>Profil <b id="u-name"></b></p>
+      <div class="acts"><button id="u-rename" class="ghost">Renommer</button><button id="u-del" class="danger">Supprimer ce profil</button></div>
     </section>
     <section class="card">
       <p><label><input type="checkbox" id="p-beep"> Bips avant les changements d'étape</label></p>
