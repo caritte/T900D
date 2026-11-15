@@ -1,0 +1,89 @@
+# T900D — contexte du projet
+
+Application personnelle qui pilote un tapis de course **Domyos T900D** en Bluetooth depuis un téléphone Android : programmes d'entraînement, séances créées sur un graphe, suivi cardio, historique. Usage familial, une installation par téléphone, aucune donnée en ligne.
+
+L'utilisateur n'est pas développeur : il teste sur son téléphone et son tapis, puis décrit le résultat ou envoie des captures. Il veut des réponses en français, courtes et directes.
+
+## Architecture
+
+Une appli web sans framework ni bundler (modules ES natifs), emballée dans un APK par Capacitor.
+
+| Fichier | Rôle |
+|---|---|
+| `index.html`, `style.css` | Tous les écrans (une `<main>` par écran), thème sombre, portrait et paysage |
+| `src/app.js` | Interface et navigation ; le seul fichier qui touche au DOM |
+| `src/ftms.js` | Protocole FTMS : décodage, commandes, `TreadmillBase` (file d'écriture, reconnexion) et transport Web Bluetooth |
+| `native/index.js` | Transport Bluetooth natif et fonctions Android (voix, anti-veille, partage, sauvegarde). Chargé uniquement dans l'APK, bundlé par esbuild en `www/native.bundle.js` |
+| `src/demo.js` | Tapis simulé, activé par `?demo=1` |
+| `src/workout.js` | Mini-langage des séances, `WorkoutRunner` (moteur d'exécution), étapes en durée ou en distance, intensité |
+| `src/programs.js` | Les programmes intégrés, vitesses en % de la VMA |
+| `src/plan.js` | Plan guidé (séance du jour) et objectif de course |
+| `src/recorder.js` | Enregistrement d'une séance (une mesure par seconde, un point de courbe toutes les 5 s) |
+| `src/hr.js`, `src/progress.js` | Zones cardiaques, indice cardio, statistiques de progression |
+| `src/chart.js` | Tous les graphes, en SVG |
+| `src/store.js`, `src/db.js` | Stockage : réglages et séances créées dans localStorage, séances réalisées dans IndexedDB |
+| `android/` | Projet Capacitor (permissions, signature, icônes) |
+| `test/run.mjs` | Tests de la logique pure |
+
+Règle de conception : toute la logique testable vit dans des modules purs (pas de DOM, horloge injectable) ; `app.js` ne fait que brancher.
+
+## Ce qui est établi sur le vrai tapis
+
+- Le tapis s'annonce sous un nom qui commence par `Domyos` et parle **FTMS standard** (service 0x1826). Les commandes démarrer, arrêter, vitesse et pente fonctionnent.
+- La **fréquence cardiaque** arrive par le tapis (ceinture pectorale analogique captée par la console), dans le champ FC des trames FTMS.
+- Le **compteur de distance du tapis n'avance que par pas de 100 m** : l'appli intègre la vitesse à la place.
+- Limites retenues : vitesse 1 à 18 km/h (pas de 0,5), pente 0 à 10 % (pas de 1 %).
+- L'APK s'affiche bord à bord : les marges des barres système passent par `--safe-area-inset-*` (voir le haut de `style.css`).
+- Les téléphones Samsung bloquent l'installation tant que le « Bloqueur automatique » est actif.
+
+Non vérifié sur l'appareil à la date de la v3 : la caractéristique FTMS « Statut » (le départ depuis la console est aussi détecté par le passage de la vitesse de 0 à plus de 0), la sauvegarde automatique dans `Documents/T900D`, la reconnexion après une vraie coupure.
+
+## Contraintes techniques à ne pas redécouvrir
+
+- La **WebView Android n'a ni Web Bluetooth, ni synthèse vocale, ni Wake Lock, ni téléchargement de fichier**. D'où `native/index.js` ; `app.js` teste `native` avant chaque usage. La version web (GitHub Pages, Chrome) reste fonctionnelle avec les API du navigateur.
+- Le conteneur de développement ne peut pas télécharger le SDK Android : **l'APK ne se construit que sur GitHub Actions**.
+- Les séances réalisées portent un champ `user` hérité d'un essai de profils multiples (abandonné). `LEGACY_USER` dans `store.js` gère les données d'avant.
+- Un changement de vitesse en cours de séance est écrasé à l'étape suivante : c'est voulu.
+
+## Versions et publication
+
+- La version courante et les versions précédentes sont dans **`version.json`** (`version`, et `previous` : nom + commit de chaque ancienne version).
+- Chaque push sur la branche déclenche `.github/workflows/apk.yml`, qui construit la version courante **et reconstruit chaque version précédente depuis son commit**, puis publie `t900d-<version>.apk` dans la release `apk`. Toutes reçoivent le même `versionCode` (numéro de build) : Android refuse d'installer un numéro plus petit, et c'est ce qui permet de revenir à une ancienne version sans désinstaller.
+- Les fichiers absents de `version.json` sont supprimés de la release. L'utilisateur veut que **toutes les versions restent disponibles** : ne retire rien de `previous` sans qu'il le demande.
+- La publication passe par `gh release upload`. Une action tierce (`softprops/action-gh-release`) échouait par intermittence sur la mise à jour du titre et bloquait l'envoi ; ne pas y revenir.
+- La clé de signature `android/app/t900d.keystore` est **versionnée dans un dépôt public**, pour que chaque build soit signé à l'identique. L'utilisateur est informé du risque et n'a pas demandé à la déplacer. La changer imposerait une désinstallation sur chaque téléphone.
+- `docs/**`, `README.md` et `CLAUDE.md` ne déclenchent pas de build.
+
+### Créer une nouvelle version
+
+1. Dans `version.json`, ajouter la version actuelle en tête de `previous` avec le commit courant (`git rev-parse HEAD`), puis passer `version` à la suivante.
+2. Développer, tester, pousser.
+3. Vérifier le build avec les outils GitHub Actions, puis donner le lien `…/releases/latest/download/t900d-<version>.apk`.
+4. Mettre à jour la notice si l'utilisateur la demande.
+
+## Tester
+
+- `npm test` : logique pure. À compléter pour toute nouvelle règle (parseur, moteur, plan, statistiques).
+- Interface : servir le dossier (`python3 -m http.server`) et ouvrir `?demo=1` avec Playwright, en portrait (390 × 760) et en paysage (800 × 360). Vérifier qu'aucun écran de course ne déborde verticalement en paysage : le téléphone est posé sur le tapis.
+- `dispatchEvent(new CustomEvent('demo-console', { detail: 'start' }))` simule le bouton Start de la console (`'stop'` pour Stop).
+- Rien de ce qui touche au Bluetooth réel, à la voix native ou au stockage Android ne peut être testé ici. **Le dire explicitement** dans le compte rendu, et demander à l'utilisateur le contenu de Réglages → Journal Bluetooth en cas de souci.
+
+## Notice d'utilisation
+
+- Un PDF par version : `docs/notice-t900d-<version>.pdf`. Les anciennes notices ne sont pas modifiées.
+- Source de la notice courante : `docs/notice/notice.html`. Captures : `node docs/notice/shots.cjs`. PDF : `node docs/notice/build.cjs v3`.
+- Pour une nouvelle version : refaire les captures, adapter le texte (numéro de version, noms des fichiers APK, renvois entre chapitres), régénérer, puis **relire le texte complet et contrôler la mise en page page par page**.
+- Ton : tutoiement, phrases courtes, noms des boutons tels qu'affichés.
+
+## Sécurité de l'utilisateur
+
+L'appli commande un tapis sur lequel quelqu'un court.
+
+- Ne jamais envoyer de vitesse hors des limites, ni de commande pendant que la séance est en pause.
+- Après une reprise ou une reconnexion, ne renvoyer les consignes que si le tapis tourne déjà ; sinon rester en pause.
+- Toute fonction qui change la vitesse d'elle-même (par exemple un pilotage par la fréquence cardiaque) doit avoir des variations lentes et bornées, et être annoncée comme non testée tant que l'utilisateur ne l'a pas essayée.
+- Rappeler que si la liaison ou l'appli tombe, le tapis continue de tourner : seule la console l'arrête.
+
+## Idées non réalisées
+
+Pilotage de la vitesse par la zone cardiaque, estimation automatique de la VMA, export Strava ou Garmin (TCX/FIT), parcours GPX avec dénivelé réel, objectifs hebdomadaires, synchronisation entre téléphones (écartée : demanderait un service en ligne).

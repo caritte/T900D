@@ -1,0 +1,450 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>T900D v3 – Notice d'utilisation</title>
+<style>
+@page{size:A4;margin:16mm 15mm 16mm}
+*{box-sizing:border-box}
+body{font:10.5pt/1.45 "DejaVu Sans","Liberation Sans",Arial,sans-serif;color:#1c2330;margin:0}
+h1{font-size:30pt;margin:0;color:#0b0d12;letter-spacing:.02em}
+h2{font-size:15pt;color:#2456c8;border-bottom:2px solid #2456c8;padding-bottom:3px;margin:0 0 8px;break-after:avoid}
+h3{font-size:11.5pt;margin:12px 0 4px;color:#0b0d12;break-after:avoid}
+p{margin:5px 0} ul,ol{margin:5px 0;padding-left:20px} li{margin:2.5px 0}
+section{break-before:page}
+.cover{break-before:auto;height:255mm;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
+.cover img{height:120mm;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.3);margin:10mm 0}
+.cover .sub{font-size:14pt;color:#4a5568}
+.two{display:grid;grid-template-columns:1fr 62mm;gap:8mm;align-items:start}
+.two img,.shot{width:100%;border-radius:10px;border:1px solid #cbd2dd}
+.wide{width:100%;border-radius:10px;border:1px solid #cbd2dd;margin:6px 0}
+figcaption{font-size:8.5pt;color:#667085;text-align:center;margin-top:3px} figure{margin:0}
+.warn{background:#fff4e5;border-left:4px solid #f59e0b;padding:7px 10px;margin:8px 0;border-radius:4px}
+.tip{background:#eaf2ff;border-left:4px solid #2456c8;padding:7px 10px;margin:8px 0;border-radius:4px}
+table{border-collapse:collapse;width:100%;margin:6px 0;font-size:9.5pt}
+th,td{border:1px solid #cbd2dd;padding:4px 7px;text-align:left;vertical-align:top} th{background:#eef2f8}
+b.k{background:#eef2f8;border:1px solid #cbd2dd;border-radius:4px;padding:0 4px;font-weight:600;white-space:nowrap}
+.toc li{margin:4px 0}
+#histfigs img{width:auto;height:100mm}
+</style></head><body>
+
+<div class="cover">
+  <h1>T900D</h1>
+  <div class="sub">Notice d'utilisation de l'application<br>pour tapis de course Domyos T900D</div>
+  <img src="shots/home.png">
+  <div class="sub">Version v3 · application Android (APK) · novembre 2026</div>
+</div>
+
+<section>
+<h2>Sommaire</h2>
+<ol class="toc">
+<li>Présentation</li><li>Sécurité</li><li>Installation et mises à jour</li><li>Connexion au tapis</li><li>L'écran d'accueil</li>
+<li>Le plan guidé : la séance du jour</li><li>Choisir et lancer un programme</li><li>L'écran de course</li><li>Intensité, affichage géant et reprise</li><li>Fréquence cardiaque et zones</li>
+<li>La VMA</li><li>Mes séances : favoris et créations</li><li>Créer une séance pas à pas</li><li>Course libre</li>
+<li>Historique et statistiques</li><li>Progression</li><li>Réglages et sauvegarde</li><li>En cas de problème</li>
+</ol>
+<h2 style="margin-top:14mm">1. Présentation</h2>
+<p>L'application pilote le tapis Domyos T900D en Bluetooth depuis un téléphone Android. Elle permet de :</p>
+<ul>
+<li>lancer l'un des <b>32 programmes d'entraînement</b> intégrés, classés par catégorie et par niveau ;</li>
+<li><b>créer ses propres séances</b> sur un graphe : la pente en barres bleues, la vitesse en ligne orange ;</li>
+<li>laisser l'appli régler automatiquement <b>la vitesse et la pente</b> du tapis à chaque étape, avec bips et annonces vocales ;</li>
+<li>suivre un <b>plan guidé</b> qui propose la séance du jour selon ton niveau, et peut préparer un <b>objectif de course</b> (5 km, 10 km, semi-marathon) ;</li>
+<li>adapter l'<b>intensité</b> d'une séance à ta forme du jour et passer en <b>affichage géant</b> ;</li>
+<li>afficher en direct la vitesse, la pente, la distance, le temps, les calories et la <b>fréquence cardiaque</b> avec sa <b>zone</b> (ceinture pectorale du tapis) ;</li>
+<li>enregistrer chaque séance, la <b>reprendre</b> si l'appli a été fermée en route, et consulter <b>l'historique</b>, les <b>courbes de progression</b> et les records ;</li>
+<li><b>sauvegarder automatiquement</b> les données après chaque séance.</li>
+</ul>
+<p>Chaque téléphone garde ses propres données : sa VMA, sa FC max, son plan, ses séances, ses favoris et son historique.</p>
+
+</section>
+
+<section>
+<h2>2. Sécurité</h2>
+<div class="warn">
+<b>L'application ne remplace pas les sécurités du tapis.</b>
+<ul>
+<li>Accroche toujours le <b>clip de sécurité</b> du tapis à tes vêtements.</li>
+<li>En cas d'urgence, utilise le bouton <b>Stop de la console</b> ou tire le clip. N'attends pas l'appli.</li>
+<li>Si la liaison Bluetooth est perdue, le tapis <b>continue de tourner</b> à sa dernière consigne : seule la console peut alors l'arrêter.</li>
+<li>Les changements de vitesse sont automatiques. Écoute les bips et les annonces pour ne pas être surpris.</li>
+<li>Le test VMA et le fractionné sont des efforts intenses. En cas de reprise après une longue pause ou de doute sur ta santé, demande un avis médical.</li>
+</ul></div>
+<h2 style="margin-top:10mm">3. Installation et mises à jour</h2>
+<h3>Installer</h3>
+<ol>
+<li>Sur le téléphone, ouvre le lien : <b>https://github.com/caritte/T900D/releases/latest/download/t900d-v3.apk</b></li>
+<li>Ouvre le fichier <b>t900d-v3.apk</b> téléchargé.</li>
+<li>Android demande d'autoriser l'installation depuis cette source, puis affiche un avertissement « application inconnue » : accepte. C'est normal pour une appli hors Play Store.</li>
+<li><b>Téléphones Samsung</b> : si le message « Application inconnue bloquée » apparaît, ouvre Paramètres → Sécurité et confidentialité → <b>Bloqueur automatique</b>, désactive-le, installe l'appli, puis réactive-le si tu veux.</li>
+<li>Au premier appui sur <b class="k">Connecter</b>, accepte la permission <b>« Appareils à proximité »</b> (Bluetooth). Sur Android 11 ou plus ancien, c'est la permission de localisation qui est demandée.</li>
+</ol>
+<h3>Mettre à jour</h3>
+<p>Les mises à jour ne sont pas automatiques. Télécharge le nouveau fichier et installe-le <b>par-dessus</b> l'appli existante, sans la désinstaller : toutes les données sont conservées.</p>
+<h3>Les versions</h3>
+<p>Trois fichiers sont proposés au téléchargement : la dernière version (<b>v3</b>, décrite dans cette notice) et les deux précédentes (<b>t900d-v2.apk</b> et <b>t900d-v1.apk</b>). Ils s'installent l'un par-dessus l'autre sans perte de données, ce qui permet de revenir en arrière. La version installée est indiquée en bas de l'écran Réglages.</p>
+<div class="warn">Ne désinstalle pas l'appli sans avoir exporté tes données (chapitre 17) : la désinstallation efface l'historique et les séances.</div>
+
+</section>
+
+<section>
+<h2>4. Connexion au tapis</h2>
+<ol>
+<li>Allume le tapis et active le Bluetooth du téléphone.</li>
+<li>Touche <b class="k">Connecter</b> en haut à droite, puis choisis le tapis dans la liste (son nom commence par <b>Domyos</b>).</li>
+<li>Le point devient <b style="color:#16a34a">vert</b> et le nom du tapis s'affiche. Le bouton devient <b class="k">Déconnecter</b>.</li>
+</ol>
+<p>L'appli se connecte aussi d'elle-même quand tu ouvres un programme.</p>
+<h3>Perte de liaison</h3>
+<p>Si le Bluetooth se coupe, l'appli affiche « reconnexion… » et réessaie sans arrêt. Pendant ce temps la séance continue, puisque le tapis tourne toujours. Au retour de la liaison :</p>
+<ul><li>si le tapis tourne encore, l'appli renvoie la vitesse et la pente de l'étape en cours ;</li>
+<li>si le tapis est à l'arrêt, la séance passe en pause.</li></ul>
+<h3>Déconnecter</h3>
+<p><b class="k">Déconnecter</b> coupe la liaison sans relancer la reconnexion automatique. Pendant une séance, l'appli demande confirmation, car le tapis ne sera plus piloté.</p>
+<div class="tip">Le tapis n'accepte qu'un seul téléphone à la fois. Pour qu'une autre personne se connecte, déconnecte d'abord le premier téléphone.</div>
+</section>
+
+<section>
+<h2>5. L'écran d'accueil</h2>
+<div class="two"><div>
+<p>L'accueil regroupe tout par tuiles.</p>
+<h3>En haut</h3>
+<ul>
+<li><b>T900D</b> (à gauche) : touche ce logo depuis n'importe quel écran pour <b>revenir à l'accueil</b>.</li>
+<li>L'état de la connexion et le bouton <b class="k">Connecter</b> / <b class="k">Déconnecter</b>.</li>
+<li>La carte <b>Séance interrompue</b>, seulement si une séance n'a pas été terminée (chapitre 9).</li>
+<li>La carte <b>Séance du jour</b> du plan guidé (chapitre 6).</li>
+<li>Le bilan des <b>7 derniers jours</b> : nombre de séances, kilomètres, temps.</li>
+</ul>
+<h3>Entraînements</h3>
+<table>
+<tr><th>Tuile</th><th>Contenu</th></tr>
+<tr><td>Remise en forme</td><td>Progression marche / course en 7 étapes, marche inclinée</td></tr>
+<tr><td>Endurance</td><td>Footings à allure facile, de 30 à 75 minutes</td></tr>
+<tr><td>Cardio</td><td>Allure soutenue : tempo, seuil, fartlek</td></tr>
+<tr><td>Fractionné</td><td>Efforts courts et intenses : 30/30, 1'/1', pyramide, 400 m, 1000 m</td></tr>
+<tr><td>Côtes</td><td>Travail en pente, jusqu'à 10 %</td></tr>
+<tr><td>Test</td><td>Test VMA par paliers</td></tr>
+<tr><td>Mes séances</td><td>Tes favoris et tes créations</td></tr>
+<tr><td>Course libre</td><td>Pilotage manuel, sans programme</td></tr>
+</table>
+<h3>Suivi</h3>
+<ul><li><b>Historique</b> : séances passées et statistiques.</li><li><b>Progression</b> : courbes et records.</li><li><b>Réglages</b> : VMA, FC max, plan, sons, sauvegarde.</li></ul>
+<h3>Navigation</h3>
+<p>La flèche <b class="k">‹</b> et le bouton Retour d'Android remontent d'un écran. L'appli fonctionne en portrait comme en paysage.</p>
+</div>
+<figure><img src="shots/home.png"><figcaption>L'accueil</figcaption></figure></div>
+</section>
+
+<section>
+<h2>6. Le plan guidé : la séance du jour</h2>
+<p>Le plan choisit pour toi la prochaine séance. Elle s'affiche en haut de l'accueil, dans la carte <b>Séance du jour</b>.</p>
+<h3>Démarrer un plan</h3>
+<p>Au premier lancement, la carte te demande ton niveau. Touche <b class="k">Débutant</b>, <b class="k">Intermédiaire</b> ou <b class="k">Confirmé</b>.</p>
+<table>
+<tr><th style="width:24%">Niveau</th><th>Contenu du plan</th></tr>
+<tr><td>Débutant</td><td>Le cycle de reprise : « Reprise 1 » à « Reprise 7 », chaque étape à réussir <b>deux fois</b> (14 séances). Ensuite, une semaine type : footings, fractionné court, cardio, côtes douces.</td></tr>
+<tr><td>Intermédiaire</td><td>Une rotation de 12 séances qui alterne footing, fractionné, seuil et côtes.</td></tr>
+<tr><td>Confirmé</td><td>Une rotation de 8 séances : sorties longues, VMA, seuil long, côtes.</td></tr>
+</table>
+<h3>Utiliser la carte</h3>
+<ul>
+<li><b class="k">▶ Lancer</b> ouvre la séance proposée.</li>
+<li><b class="k">Passer</b> saute cette séance et propose la suivante.</li>
+<li>La ligne grise indique où tu en es, par exemple « Cycle de reprise · séance 3/14 ».</li>
+</ul>
+<h3>Quand le plan avance</h3>
+<p>Le plan passe à la séance suivante quand tu <b>termines la séance proposée en entier</b> (au moins 80 % de sa durée). Une séance arrêtée en route, ou une autre séance que celle proposée, ne le fait pas avancer. Tu restes libre de lancer n'importe quel autre programme.</p>
+<h3>Les conseils de récupération</h3>
+<p>Un message orange <b>⚠</b> apparaît sur la carte dans deux cas :</p>
+<ul>
+<li>tu t'es entraîné il y a moins de 16 heures : une journée de repos est conseillée ;</li>
+<li>la séance proposée est intense (cardio, fractionné, côtes) et la précédente séance intense date de moins de deux jours.</li>
+</ul>
+<p>Ce sont des conseils : le bouton Lancer reste utilisable.</p>
+<h3>Préparer une course : l'objectif</h3>
+<p>Dans <b>Réglages</b>, choisis « Objectif de course » (<b>5 km</b>, <b>10 km</b> ou <b>Semi-marathon</b>) et la <b>date de la course</b>, au moins 9 jours à l'avance. Le plan s'organise alors jusqu'à cette date :</p>
+<table>
+<tr><th style="width:26%">Phase</th><th>Séances proposées, à tour de rôle</th></tr>
+<tr><td>Base (premiers 40 % du temps)</td><td>Footing, fractionné court, sortie longue.</td></tr>
+<tr><td>Spécifique</td><td>Selon la distance : fractionné ou seuil, footing ou sortie longue, et une séance <b>« Allure course »</b> faite de répétitions en distance à l'allure visée.</td></tr>
+<tr><td>Affûtage (7 derniers jours)</td><td>Footing court et rappel de vitesse léger.</td></tr>
+<tr><td>Veille et jour J</td><td>Repos : aucune séance n'est proposée.</td></tr>
+</table>
+<p>La carte de l'accueil affiche le compte à rebours (« J-41 »), la phase en cours, et l'<b>allure et le temps visés</b>, estimés d'après ta VMA : 93 % de la VMA sur 5 km, 88 % sur 10 km, 80 % sur semi-marathon. Ce sont des estimations, pas une garantie.</p>
+<p>Après la date de la course, le plan reprend son déroulement normal. Pour annuler un objectif, remets « Objectif de course » sur <b>Aucun</b>.</p>
+<h3>Changer de niveau ou recommencer</h3>
+<p>Dans <b>Réglages</b>, la ligne « Plan guidé » change le niveau ou désactive le plan (« Aucun »). <b class="k">Recommencer le plan au début</b> remet le compteur à la première séance.</p>
+<div class="tip">Seuls les programmes intégrés comptent pour le plan. Une copie personnalisée ou une séance créée à la main ne le fait pas avancer.</div>
+</section>
+
+<section>
+<h2>7. Choisir et lancer un programme</h2>
+<div class="two"><div>
+<ol>
+<li>Sur l'accueil, touche une <b>catégorie</b>.</li>
+<li>Filtre si besoin par <b>niveau</b> : Tous, Débutant, Intermédiaire, Confirmé.</li>
+<li>Chaque carte montre le profil de la séance, sa durée, sa distance et son dénivelé estimés, et une courte description.</li>
+<li>Touche <b class="k">▶ Lancer</b> : l'écran de course s'ouvre et l'appli se connecte au tapis.</li>
+<li>Démarre la séance, au choix :
+  <ul><li>avec le bouton <b>Start du tapis</b> ;</li><li>avec le bouton <b class="k">Démarrer</b> de l'appli.</li></ul></li>
+</ol>
+<h3>Les autres boutons d'une carte</h3>
+<ul>
+<li><b class="k">Personnaliser</b> : ouvre une copie du programme dans l'éditeur. Une fois enregistrée, elle apparaît dans « Mes séances ».</li>
+<li><b class="k">☆</b> : ajoute le programme aux <b>favoris</b>. L'étoile devient ★ ; touche-la de nouveau pour le retirer.</li>
+</ul>
+<h3>Progression conseillée</h3>
+<ul>
+<li><b>Débutant</b> : 3 séances par semaine, un jour de repos entre chaque. Enchaîne « Reprise 1 » à « Reprise 7 » dans l'ordre ; passe à la suivante quand la séance en cours passe facilement deux fois de suite.</li>
+<li><b>Intermédiaire</b> : par semaine, 1 footing d'endurance, 1 séance de cardio ou de fractionné, 1 séance de côtes ou un second footing.</li>
+<li><b>Confirmé</b> : même structure avec les séances de niveau confirmé. Jamais deux séances intenses deux jours de suite.</li>
+</ul>
+<div class="tip">Les vitesses des programmes dépendent de ta VMA (chapitre 11). Règle-la avant ta première séance.</div>
+</div>
+<figure><img src="shots/cat.png"><figcaption>La catégorie Fractionné</figcaption></figure></div>
+</section>
+
+<section>
+<h2>8. L'écran de course</h2>
+<div class="two" style="grid-template-columns:1fr 50mm"><div>
+<h3>Ce qui est affiché</h3>
+<ul>
+<li><b>Le graphe</b> de la séance, avec un trait blanc qui avance et l'étape en cours en surbrillance.</li>
+<li><b>Le temps restant</b> de l'étape, en très gros, avec sa vitesse et sa pente, et l'étape <b>suivante</b>. Pour une étape définie en distance, c'est la <b>distance restante</b> en mètres qui s'affiche.</li>
+<li><b>Six compteurs</b> : vitesse, pente, fréquence cardiaque avec sa zone (« bpm · Z3 »), distance, temps, calories.</li>
+</ul>
+<h3>Les boutons</h3>
+<table>
+<tr><th>Bouton</th><th>Effet</th></tr>
+<tr><td>Démarrer / Reprendre</td><td>Lance ou reprend la séance et le tapis</td></tr>
+<tr><td>Pause</td><td>Met la séance et le tapis en pause</td></tr>
+<tr><td>Suivante</td><td>Passe tout de suite à l'étape suivante</td></tr>
+<tr><td>Arrêter</td><td>Arrête le tapis et enregistre la séance</td></tr>
+<tr><td>Vitesse − / +</td><td>Ajuste en direct par pas de 0,5 km/h</td></tr>
+<tr><td>Pente − / +</td><td>Ajuste en direct par pas de 1 %</td></tr>
+<tr><td>− 100 % + (en haut)</td><td>Intensité de toute la séance (chapitre 9)</td></tr>
+<tr><td>⛶ (en haut à droite)</td><td>Affichage géant ou détaillé (chapitre 9)</td></tr>
+</table>
+<p>Un ajustement en direct vaut jusqu'à la fin de l'étape : l'étape suivante applique ses propres valeurs. L'écran reste allumé pendant la séance. Une séance de moins de 10 secondes n'est pas enregistrée.</p>
+<h3>Depuis la console du tapis</h3>
+<ul><li><b>Start</b> démarre ou reprend la séance.</li><li><b>Stop</b> la met en pause. Touche ensuite <b class="k">Arrêter</b> dans l'appli pour la terminer et l'enregistrer.</li></ul>
+<h3>Bips et voix</h3>
+<ul><li>Un bip à 3, 2 et 1 seconde de chaque changement d'étape, puis un bip plus aigu au changement.</li>
+<li>La voix annonce chaque étape (vitesse, pente, durée) et prévient 10 secondes avant la suivante.</li></ul>
+</div>
+<figure><img src="shots/run.png"><figcaption>Une séance en cours</figcaption></figure></div>
+<figure><img class="wide" src="shots/run-land.png" style="width:80mm;display:block;margin:2px auto 0"><figcaption>En paysage : graphe à gauche, compteurs et boutons à droite</figcaption></figure>
+</section>
+
+<section>
+<h2>9. Intensité, affichage géant et reprise</h2>
+<div class="two"><div>
+<h3>Régler l'intensité du jour</h3>
+<p>En haut de l'écran de course, à côté du titre, les boutons <b class="k">−</b> et <b class="k">+</b> encadrent un pourcentage. Ils décalent <b>toutes les vitesses</b> de la séance par pas de 5 %, de 80 % (plus facile) à 120 % (plus dur).</p>
+<ul>
+<li>Le réglage se fait avant le départ ou en pleine séance : la vitesse de l'étape en cours change aussitôt.</li>
+<li>Les pentes et les durées ne changent pas. Une étape en distance garde sa distance.</li>
+<li>Le réglage vaut pour cette séance seulement : la suivante repart à 100 %.</li>
+</ul>
+<h3>L'affichage géant</h3>
+<p>Le bouton <b class="k">⛶</b>, en haut à droite, bascule entre deux affichages, à tout moment :</p>
+<ul>
+<li><b>détaillé</b> : le graphe, les six compteurs et tous les boutons ;</li>
+<li><b>géant</b> : le temps (ou la distance) restant en très gros, l'étape suivante, la vitesse, la pente et la fréquence cardiaque. Il se lit de loin, surtout en paysage.</li>
+</ul>
+<p>Le bouton est bleu quand l'affichage géant est actif. L'appli retient ton choix pour les séances suivantes. En course libre, l'affichage géant montre aussi le temps écoulé.</p>
+<h3>Reprendre une séance interrompue</h3>
+<p>Pendant une séance, l'appli mémorise son avancement toutes les 5 secondes. Si elle est fermée en route (appel, batterie, fermeture par erreur), l'accueil affiche pendant 12 heures la carte <b>Séance interrompue</b> :</p>
+<ul>
+<li><b class="k">Reprendre</b> rouvre la séance en pause, là où elle s'est arrêtée, avec le temps et la distance déjà faits. Relance ensuite avec Start du tapis ou <b class="k">Reprendre</b>.</li>
+<li><b class="k">Enregistrer telle quelle</b> range dans l'historique ce qui a été fait.</li>
+<li><b class="k">Abandonner</b> efface cette séance, après confirmation.</li>
+</ul>
+<div class="warn">Si l'appli se ferme, le tapis <b>continue de tourner</b> à sa dernière consigne. Arrête-le à la console avant de rouvrir l'appli.</div>
+<figure><img class="wide" src="shots/resume.png"><figcaption>La carte « Séance interrompue » sur l'accueil</figcaption></figure>
+</div>
+<figure><img src="shots/run-big.png"><figcaption>L'affichage géant</figcaption></figure></div>
+<figure><img class="wide" src="shots/run-big-land.png" style="width:95mm;display:block;margin:4px auto 0"><figcaption>L'affichage géant en paysage</figcaption></figure>
+</section>
+
+<section>
+<h2>10. Fréquence cardiaque et zones</h2>
+<div class="two"><div>
+<p>Porte la ceinture pectorale du tapis, électrodes humidifiées. Le tapis capte le signal et le transmet à l'appli.</p>
+<h3>Régler sa FC max</h3>
+<p>Accueil → <b>Réglages</b> → « FC max », boutons <b class="k">−5</b> <b class="k">−</b> <b class="k">+</b> <b class="k">+5</b>. Elle vaut 185 bpm par défaut. Si tu ne la connais pas, le repère habituel est <b>220 − ton âge</b>.</p>
+<h3>Les cinq zones</h3>
+<table>
+<tr><th>Zone</th><th>% de la FC max</th><th>Sensation</th></tr>
+<tr><td>Z1 Récupération</td><td>moins de 60 %</td><td>Très facile</td></tr>
+<tr><td>Z2 Endurance</td><td>60 à 70 %</td><td>Facile, tu peux parler</td></tr>
+<tr><td>Z3 Tempo</td><td>70 à 80 %</td><td>Soutenu, phrases courtes</td></tr>
+<tr><td>Z4 Seuil</td><td>80 à 90 %</td><td>Difficile, quelques mots</td></tr>
+<tr><td>Z5 Maximum</td><td>90 % et plus</td><td>Très dur, tenable peu de temps</td></tr>
+</table>
+<p>Les bornes en battements par minute, calculées pour ta FC max, sont affichées dans Réglages.</p>
+<h3>Où les zones apparaissent</h3>
+<ul>
+<li><b>En course</b> : sous le compteur de fréquence cardiaque, par exemple « bpm · Z3 ».</li>
+<li><b>Dans le détail d'une séance</b> : le temps passé dans chaque zone, en durée et en pourcentage. Ce calcul utilise ta FC max actuelle, y compris pour les anciennes séances.</li>
+</ul>
+<h3>L'alerte vocale</h3>
+<p>Dans Réglages, « Alerte vocale FC » propose : Aucune, Au-dessus de Z2, de Z3 ou de Z4. Si ta fréquence reste au-dessus de la limite pendant 15 secondes, la voix annonce ta fréquence et te demande de ralentir, au plus une fois par minute.</p>
+<div class="tip">L'alerte s'applique à toutes les séances. « Au-dessus de Z2 » est utile pour rester en endurance ; pense à la désactiver avant un fractionné.</div>
+<p>Les annonces vocales doivent être activées pour que l'alerte fonctionne.</p>
+</div>
+<figure><img src="shots/sess.png"><figcaption>Le temps par zone, dans le détail d'une séance</figcaption></figure></div>
+</section>
+
+<section>
+<h2>11. La VMA</h2>
+<p>La VMA est la vitesse maximale que tu peux tenir environ 6 minutes. Les vitesses des programmes intégrés sont des pourcentages de cette valeur, arrondis au 0,5 km/h.</p>
+<h3>La régler</h3>
+<p>Accueil → <b>Réglages</b> → « Ma VMA », boutons <b class="k">−</b> et <b class="k">+</b>. Elle vaut 11 km/h par défaut.</p>
+<p>Repères en attendant de la mesurer : débutant 9 à 11 km/h, intermédiaire 12 à 14, confirmé 15 et plus. Mieux vaut la régler un peu bas et la monter si les séances passent facilement.</p>
+<h3>Ce que change la VMA</h3>
+<table>
+<tr><th>Phase</th><th>% de la VMA</th><th>VMA 11</th><th>VMA 12</th></tr>
+<tr><td>Échauffement</td><td>60 %</td><td>6,5 km/h</td><td>7 km/h</td></tr>
+<tr><td>Footing</td><td>65 %</td><td>7 km/h</td><td>8 km/h</td></tr>
+<tr><td>Seuil</td><td>85 %</td><td>9,5 km/h</td><td>10 km/h</td></tr>
+<tr><td>Fractionné 30/30</td><td>100 %</td><td>11 km/h</td><td>12 km/h</td></tr>
+</table>
+<p>Ne changent pas : les durées, les pentes, la marche (5 à 5,5 km/h), le test VMA, et les séances de « Mes créations », dont les vitesses sont fixes. Les vitesses sont plafonnées à 18 km/h.</p>
+<h3>Mesurer sa VMA : le test par paliers</h3>
+<ol>
+<li>Fais-le reposé, clip de sécurité accroché.</li>
+<li>Accueil → <b>Test</b> → « Test VMA par paliers » → <b class="k">▶ Lancer</b>, puis Start.</li>
+<li>Le test commence par 10 minutes d'échauffement à 7 km/h et 2 minutes de marche.</li>
+<li>Les paliers démarrent à 8 km/h, pente 1 %, et la vitesse augmente de 0,5 km/h chaque minute.</li>
+<li>Arrête dès que tu ne peux plus suivre (Stop du tapis ou <b class="k">Arrêter</b>), puis marche quelques minutes.</li>
+<li>Ta VMA est la vitesse du <b>dernier palier terminé en entier</b>. Exemple : si tu lâches pendant le palier à 13 km/h, ta VMA est 12,5 km/h.</li>
+<li>Reporte cette valeur dans Réglages.</li>
+</ol>
+<p>Refais le test toutes les 6 à 8 semaines pour suivre ta progression.</p>
+</section>
+
+<section>
+<h2>12. Mes séances : favoris et créations</h2>
+<div class="two"><div>
+<p>La tuile <b>⭐ Mes séances</b> réunit deux listes.</p>
+<h3>Favoris</h3>
+<p>Les programmes intégrés que tu as marqués d'une étoile. Ils gardent leurs vitesses calculées sur ta VMA. Touche <b class="k">★</b> pour en retirer un.</p>
+<h3>Mes créations</h3>
+<p>Les séances que tu as créées ou personnalisées. Pour chacune :</p>
+<ul><li><b class="k">▶ Lancer</b> ouvre l'écran de course ;</li><li><b class="k">Modifier</b> ouvre l'éditeur ;</li><li><b class="k">🗑</b> la supprime, après confirmation.</li></ul>
+<p>Le bouton <b class="k">+ Nouvelle</b> crée une séance vide (chapitre 13).</p>
+</div>
+<figure><img src="shots/mine.png"><figcaption>Mes séances</figcaption></figure></div>
+</section>
+
+<section>
+<h2>13. Créer une séance pas à pas</h2>
+<div class="two"><div>
+<ol>
+<li>Accueil → <b>⭐ Mes séances</b> → <b class="k">+ Nouvelle</b>.</li>
+<li>Tape le <b>nom</b> de la séance en haut.</li>
+<li>La séance démarre avec une étape : 5 minutes à 6 km/h, pente 0 %. Règle-la :
+  <ul><li><b>Durée</b> : −1m, −15s, +15s, +1m ;</li><li><b>Vitesse</b> : − et +, par pas de 0,5 km/h ;</li><li><b>Pente</b> : − et +, par pas de 1 %.</li></ul>
+  Tu peux aussi tirer les poignées sur le graphe : le <b style="color:#d97706">rond orange</b> pour la vitesse, le <b style="color:#2456c8">carré bleu</b> pour la pente.</li>
+<li>Touche <b class="k">+ Étape</b> : une étape identique est ajoutée juste après. Règle-la à son tour.</li>
+<li>Pour modifier une étape, <b>touche sa zone sur le graphe</b> : elle devient l'étape sélectionnée.</li>
+<li><b class="k">←</b> et <b class="k">→</b> déplacent l'étape sélectionnée. <b class="k">Supprimer</b> l'enlève.</li>
+<li>Vérifie le résumé sous le graphe : durée totale, distance et dénivelé estimés.</li>
+<li>Touche <b class="k">Enregistrer</b>.</li>
+</ol>
+<h3>Une étape en distance</h3>
+<p>Le bouton <b class="k">Durée ⇄</b> transforme l'étape sélectionnée en étape <b>en distance</b> ; il affiche alors « Distance ⇄ ». Les quatre boutons deviennent −500m, −100m, +100m, +500m (minimum 50 m). La durée entre parenthèses est une estimation.</p>
+<p>Pendant la séance, une étape en distance se termine quand la distance est <b>réellement parcourue</b>, d'après la vitesse du tapis : elle dure donc un peu plus longtemps que l'estimation, le temps que le tapis accélère.</p>
+<h3>Répéter un bloc (fractionné)</h3>
+<ol>
+<li>Crée le bloc une fois, par exemple 30 s vite puis 30 s lentes.</li>
+<li>Sélectionne la <b>dernière étape du bloc</b>.</li>
+<li>Touche <b class="k">Répéter…</b>, indique le nombre d'étapes du bloc (ici 2), puis combien de fois en plus (2 pour 3 répétitions au total).</li>
+</ol>
+<div class="tip">Pour partir d'une base, utilise <b>Personnaliser</b> sur un programme : l'éditeur s'ouvre avec ses étapes déjà remplies.</div>
+<p>Limites : vitesse de 1 à 18 km/h, pente de 0 à 10 %, durée minimale d'une étape 10 secondes.</p>
+</div>
+<figure><img src="shots/edit.png"><figcaption>L'éditeur de séance</figcaption></figure></div>
+
+<h2 style="margin-top:8mm">14. Course libre</h2>
+<p>La tuile <b>Course libre</b> ouvre l'écran de course sans programme. Démarre avec Start ou <b class="k">Démarrer</b>, puis règle la vitesse et la pente avec les boutons − et + de l'appli ou avec la console. Le graphe trace la séance au fur et à mesure, et elle est enregistrée dans l'historique comme les autres.</p>
+</section>
+
+<section>
+<h2>15. Historique et statistiques</h2>
+<div class="two"><div>
+<h3>La liste</h3>
+<ul>
+<li>Trois filtres en haut : la <b>période</b> (7 jours, 30 jours, 1 an, tout), la <b>séance</b>, et le <b>tri</b> (date, distance, durée, vitesse).</li>
+<li>Les <b>totaux</b> de la sélection : nombre de séances, kilomètres, temps, dénivelé, calories, vitesse moyenne.</li>
+<li>Les séances, regroupées par mois quand le tri est par date. La mention « arrêtée » signale un programme interrompu avant la fin.</li>
+</ul>
+<h3>Le détail</h3>
+<p>Touche une séance pour voir son graphe (pente en bleu, vitesse en orange, fréquence cardiaque en rouge) et ses chiffres : durée, distance, calories, vitesse moyenne et maximale, allure au kilomètre, dénivelé, fréquence cardiaque moyenne et maximale. <b class="k">Supprimer</b> l'efface de l'historique.</p>
+<p>Sous les chiffres, le <b>temps par zone cardiaque</b> (chapitre 10) s'affiche si la ceinture était portée.</p>
+<p>La distance est calculée par l'appli à partir de la vitesse. Elle est plus précise que le compteur du tapis, qui n'avance que par pas de 100 m ; les deux peuvent donc différer légèrement.</p>
+</div>
+<figure><img src="shots/hist.png"><figcaption>L'historique</figcaption></figure></div>
+</section>
+
+<section>
+<h2>16. Progression</h2>
+<div class="two"><div>
+<p>La tuile <b>Progression</b> montre ton évolution sur plusieurs semaines. Touche une barre ou un point pour lire sa valeur en haut du graphe.</p>
+<h3>Volume par semaine</h3>
+<p>Les 12 dernières semaines, du lundi au dimanche. Trois boutons changent la mesure : <b class="k">Kilomètres</b>, <b class="k">Temps</b>, <b class="k">Séances</b>. La barre la plus à droite est la semaine en cours.</p>
+<h3>Indice cardio</h3>
+<p>C'est ta vitesse moyenne pour 100 battements de cœur, calculée sur les phases courues (5 km/h et plus) où la ceinture était portée. Chaque point est une séance.</p>
+<ul>
+<li>Quand l'indice <b>monte</b>, tu cours plus vite pour la même fréquence cardiaque : ton cardio progresse.</li>
+<li>Il ne tient pas compte de la pente, et un fractionné donne un indice différent d'un footing. Compare donc des séances du même type.</li>
+<li>Une séance n'apparaît que si elle contient au moins une minute de course avec fréquence cardiaque.</li>
+</ul>
+<h3>VMA</h3>
+<p>La courbe de ta VMA. Un point s'ajoute chaque jour où tu modifies la VMA dans Réglages, par exemple après un test.</p>
+<h3>Records</h3>
+<p>Plus longue séance, plus longue distance, meilleure vitesse moyenne (séances de 10 minutes et plus), vitesse maximale, plus gros dénivelé et meilleure semaine, chacun avec sa date.</p>
+</div>
+<figure><img src="shots/prog.png"><figcaption>L'écran Progression</figcaption></figure></div>
+</section>
+
+<section>
+<h2>17. Réglages et sauvegarde</h2>
+<div class="two"><div>
+<ul>
+<li><b>Ma VMA</b> : voir chapitre 11.</li>
+<li><b>FC max</b>, zones et <b>Alerte vocale FC</b> : voir chapitre 10.</li>
+<li><b>Plan guidé</b>, <b>Objectif de course</b> et <b>Date de la course</b> : voir chapitre 6.</li>
+<li><b>Bips</b> et <b>Annonces vocales</b> : deux cases à cocher indépendantes.</li>
+<li><b>Sauvegarde automatique après chaque séance</b> : quand la case est cochée, l'appli écrit le fichier de sauvegarde dans le dossier <b>Documents/T900D</b> du téléphone à la fin de chaque séance. Ce dossier est conservé si l'appli est désinstallée. La ligne en dessous indique la date de la dernière sauvegarde, ou l'erreur rencontrée.</li>
+<li><b>Exporter mes données</b> : crée le fichier <b>t900d-sauvegarde.json</b> (séances créées, favoris, VMA et son historique, FC max, plan, historique des séances) et ouvre le partage Android pour l'envoyer par mail, Drive ou messagerie.</li>
+<li><b>Importer</b> : choisis un fichier de sauvegarde. Les séances de l'historique déjà présentes ne sont pas dupliquées ; les séances créées sont ajoutées à la suite. La VMA, la FC max et le plan sont remplacés par ceux du fichier.</li>
+<li><b>Journal Bluetooth</b> : messages techniques, utiles en cas de problème de connexion.</li>
+<li><b>Version</b> : le numéro de la version installée, tout en bas.</li>
+</ul>
+<div class="tip">Les données ne sont stockées que sur le téléphone. La sauvegarde automatique protège d'une désinstallation, pas de la perte du téléphone : envoie-toi un export de temps en temps, et toujours avant de changer de téléphone.</div>
+<p>Pour restaurer après une réinstallation : <b>Importer</b>, puis choisis le fichier dans Documents/T900D. Après une réinstallation, les nouvelles sauvegardes automatiques peuvent porter la date dans leur nom.</p>
+</div>
+<figure><img src="shots/prefs.png"><figcaption>Les réglages</figcaption></figure></div>
+
+</section>
+
+<section>
+<h2>18. En cas de problème</h2>
+<table>
+<tr><th style="width:38%">Problème</th><th>Que faire</th></tr>
+<tr><td>« Application inconnue bloquée » à l'installation (Samsung)</td><td>Désactive le Bloqueur automatique le temps de l'installation : Paramètres → Sécurité et confidentialité → Bloqueur automatique.</td></tr>
+<tr><td>Le tapis n'apparaît pas dans la liste</td><td>Vérifie que le tapis est allumé, que le Bluetooth du téléphone est activé et que la permission « Appareils à proximité » est accordée. Vérifie qu'aucun autre téléphone n'est déjà connecté au tapis.</td></tr>
+<tr><td>La connexion échoue</td><td>Éteins et rallume le Bluetooth du téléphone, puis réessaie. Relève le contenu de Réglages → Journal Bluetooth.</td></tr>
+<tr><td>La fréquence cardiaque reste à « - »</td><td>Humidifie les électrodes de la ceinture, resserre-la, et vérifie que la console du tapis affiche bien le pouls.</td></tr>
+<tr><td>Les zones semblent trop hautes ou trop basses</td><td>Vérifie ta FC max dans Réglages : toutes les zones en dépendent.</td></tr>
+<tr><td>Le plan n'avance pas</td><td>Il n'avance que si la séance proposée est terminée en entier, lancée depuis un programme intégré. Utilise <b>Passer</b> pour avancer à la main.</td></tr>
+<tr><td>L'indice cardio est vide</td><td>Il faut au moins deux séances avec la ceinture pectorale et une minute de course chacune.</td></tr>
+<tr><td>La sauvegarde automatique indique une erreur</td><td>Autorise l'accès au stockage si Android le demande. Sinon, utilise <b>Exporter mes données</b> et signale le message d'erreur affiché dans Réglages.</td></tr>
+<tr><td>La carte « Séance interrompue » n'apparaît pas</td><td>Elle n'est proposée que pendant 12 heures, et seulement si la séance n'a été ni terminée ni arrêtée avec le bouton Arrêter.</td></tr>
+<tr><td>Une étape en distance dure plus longtemps que prévu</td><td>C'est normal : elle se termine à la distance réellement parcourue, accélération du tapis comprise.</td></tr>
+<tr><td>Pas de bips ou pas de voix</td><td>Vérifie les cases dans Réglages et le volume « multimédia » du téléphone. La voix utilise la synthèse vocale d'Android : vérifie qu'une voix française est installée.</td></tr>
+<tr><td>La séance ne démarre pas avec Start du tapis</td><td>L'écran de course doit être ouvert et le tapis connecté (point vert) avant d'appuyer sur Start. Sinon, utilise <b>Démarrer</b>.</td></tr>
+<tr><td>Le tapis ne change plus de vitesse</td><td>La liaison est peut-être perdue : regarde l'état en haut de l'écran. Pilote le tapis à la console en attendant la reconnexion.</td></tr>
+<tr><td>La mise à jour refuse de s'installer</td><td>Ne désinstalle pas avant d'avoir exporté tes données. Exporte, désinstalle, réinstalle, puis importe.</td></tr>
+</table>
+</section>
+</body></html>
