@@ -1,7 +1,9 @@
 {
   "version": "v3",
   "previous": [
-    { "name": "v2", "ref": "3f2b27a5f3b7756c413de93124d2babdd1428e3c" },
-    { "name": "v1", "ref": "869e26f79008e8069d699e4f483a43cfe4f92a99" }
+    {
+      "name": "v2",
+      "ref": "3f2b27a5f3b7756c413de93124d2babdd1428e3c"
+    }
   ]
 }
