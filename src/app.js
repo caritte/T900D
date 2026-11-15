@@ -132,9 +132,11 @@ function renderHome() {
 let todayW = null;
 function renderToday(all) {
   const box = $('today');
+  // Accès direct au réglage de l'objectif de course, sinon caché au fond des Réglages.
+  const goalBtn = `<button class="ghost" data-a="goal">🎯 ${goalActive(plan) ? 'Modifier l\'objectif' : 'Objectif de course'}</button>`;
   if (!plan?.level) {
     box.innerHTML = '<h3>Séance du jour</h3><p class="muted">Choisis ton niveau : l\'appli te proposera la prochaine séance à chaque fois.</p><div class="acts">' +
-      [1, 2, 3].map((l) => `<button class="ghost" data-l="${l}">${LEVELS[l]}</button>`).join('') + '</div>';
+      [1, 2, 3].map((l) => `<button class="ghost" data-l="${l}">${LEVELS[l]}</button>`).join('') + `</div><div class="acts">${goalBtn}</div>`;
     return;
   }
   const { program: p, progress, rest } = planToday(plan);
@@ -142,7 +144,7 @@ function renderToday(all) {
   const target = g ? `<div class="muted">Allure visée ≈ ${fr(g.kmh)} km/h (${fmt(3600 / g.kmh)} /km) · temps visé ≈ ${fmt(g.seconds)}</div>` : '';
   if (!p) { // veille ou jour de course
     todayW = null;
-    box.innerHTML = `<h3>Séance du jour</h3><b>${progress}</b><div class="note">${rest}</div>${target}`;
+    box.innerHTML = `<h3>Séance du jour</h3><b>${progress}</b><div class="note">${rest}</div>${target}<div class="acts">${goalBtn}</div>`;
     return;
   }
   const note = advice(all, p);
@@ -150,7 +152,7 @@ function renderToday(all) {
   box.innerHTML = `<div class="top"><h3>Séance du jour</h3><span class="badge l${p.level}">${LEVELS[p.level]}</span></div>
     <b>${CAT_INFO[p.cat].icon} ${esc(p.name)}</b><div class="muted">${progress} · ${summary(todayW.steps)}</div>${target}
     ${note ? `<div class="note">⚠ ${note}</div>` : ''}
-    <div class="acts"><button class="primary" data-a="run">▶ Lancer</button><button class="ghost" data-a="skip">Passer</button></div>`;
+    <div class="acts"><button class="primary" data-a="run">▶ Lancer</button><button class="ghost" data-a="skip">Passer</button>${goalBtn}</div>`;
 }
 // Séance interrompue (appli fermée en cours de route) : proposée à la reprise pendant 12 heures.
 function renderResume() {
@@ -173,6 +175,7 @@ $('today').onclick = (e) => {
   const d = e.target.dataset;
   if (d.l) { setPlan({ level: +d.l, idx: 0 }); renderHome(); }
   if (d.a === 'run') openRun(todayW);
+  if (d.a === 'goal') { openPrefs(); $('goal-km').scrollIntoView({ block: 'center' }); $('goal-km').focus(); }
   if (d.a === 'skip') { setPlan({ ...plan, idx: plan.idx + 1 }); renderHome(); }
 };
 // Carte d'une séance. builtin : programme intégré (non supprimable, « Personnaliser » en fait une copie).
