@@ -61,7 +61,7 @@ Depuis la v4, un réglage permet d'enregistrer chaque séance terminée dans Hea
 - Sur Android 14+, les permissions santé se demandent comme des permissions ordinaires (annotation `@Permission` de Capacitor). Le manifeste doit garder les quatre `android.permission.health.WRITE_*` **et** l'`activity-alias` `VIEW_PERMISSION_USAGE` / `HEALTH_PERMISSIONS`, sans lequel la permission ne peut pas être accordée.
 - Chaque enregistrement porte un identifiant client (`t900d-<début>-<type>`) : renvoyer une séance la remplace au lieu de la dupliquer.
 - Vérification locale possible de `HealthWriter.java` seul : `javac` contre `org.robolectric:android-all` (API 34) de Maven Central. Le reste ne se compile que sur GitHub Actions.
-- Vérifié sur le téléphone de l'utilisateur : la permission est accordée et l'écriture réussit (4 éléments pour une séance avec FC). Non vérifié : ce que Samsung Health reprend ensuite.
+- Vérifié sur le téléphone de l'utilisateur : la permission est accordée et l'écriture réussit (4 éléments pour une séance avec FC). Samsung Health importe la séance comme « Tapis de course » avec durée, distance, calories, FC moyenne et maximale, et la courbe de FC (il calcule ses propres zones).
 
 ## Contraintes techniques à ne pas redécouvrir
 
