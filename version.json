@@ -1,6 +1,10 @@
 {
-  "version": "v3",
+  "version": "v4",
   "previous": [
+    {
+      "name": "v3",
+      "ref": "c5893326d8cb6d869ef8c513e35ac5be8a6f06b2"
+    },
     {
       "name": "v2",
       "ref": "3f2b27a5f3b7756c413de93124d2babdd1428e3c"

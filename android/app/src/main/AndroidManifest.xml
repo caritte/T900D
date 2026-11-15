@@ -24,6 +24,13 @@
 
         </activity>
 
+        <!-- Glycémie et IOB diffusés par AAPS (plugin « Samsung Tizen »). -->
+        <receiver android:name=".AapsReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="info.nightscout.androidaps.status" />
+            </intent-filter>
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

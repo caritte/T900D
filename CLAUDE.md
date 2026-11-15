@@ -38,6 +38,17 @@ Règle de conception : toute la logique testable vit dans des modules purs (pas 
 
 Non vérifié sur l'appareil à la date de la v3 : la caractéristique FTMS « Statut » (le départ depuis la console est aussi détecté par le passage de la vitesse de 0 à plus de 0), la sauvegarde automatique dans `Documents/T900D`, la reconnexion après une vraie coupure.
 
+## Glycémie et IOB (AAPS)
+
+Depuis la v4, l'écran de course peut afficher la glycémie et l'insuline active fournies par l'appli AAPS installée sur le même téléphone. Les deux compteurs n'apparaissent que si des données sont reçues.
+
+- AAPS diffuse son état par l'intent `info.nightscout.androidaps.status` (plugin « Samsung Tizen », `TizenPlugin.kt` dans AAPS), à chaque cycle de boucle. Extras utilisés : `glucoseMgdl`, `glucoseTimeStamp`, `units`, `slopeArrow`, `deltaMgdl`, `iob`, `low`, `high`.
+- AAPS n'envoie qu'aux **récepteurs déclarés dans le manifeste** (il les cherche avec `queryBroadcastReceivers`) : `AapsReceiver.java` doit rester déclaré dans `AndroidManifest.xml`. `AapsPlugin.java` expose la dernière valeur à la page ; `src/glucose.js` la met en forme.
+- Une mesure de plus de 11 minutes est grisée et datée, jamais présentée comme actuelle. Ne pas affaiblir cette règle.
+- C'est un affichage d'information : l'appli ne déclenche aucune alerte de glycémie et ne doit jamais envoyer quoi que ce soit à AAPS.
+- Test en simulation : `?demo=1&aaps=1`. La réception réelle ne peut être vérifiée que sur le téléphone.
+- Ne rien écrire dans ce dépôt public sur la santé de l'utilisateur.
+
 ## Contraintes techniques à ne pas redécouvrir
 
 - La **WebView Android n'a ni Web Bluetooth, ni synthèse vocale, ni Wake Lock, ni téléchargement de fichier**. D'où `native/index.js` ; `app.js` teste `native` avant chaque usage. La version web (GitHub Pages, Chrome) reste fonctionnelle avec les API du navigateur.

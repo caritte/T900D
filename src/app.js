@@ -7,6 +7,7 @@ import { loadWorkouts, saveWorkouts, uid, currentUser, loadVma, saveVma, loadFav
 import { ZONES, ZONE_COLORS, zoneOf, zoneTimes } from './hr.js';
 import { planToday, advance, advice, goalActive, goalTarget, GOALS } from './plan.js';
 import { weekly, cardioSeries, records } from './progress.js';
+import { glucoseView } from './glucose.js';
 import { Recorder } from './recorder.js';
 import { putSession, allSessions, delSession } from './db.js';
 import { beep, say, unlock } from './audio.js';
@@ -236,6 +237,13 @@ function openPrefs() {
   $('goal-date').min = new Date(Date.now() + 9 * 864e5).toLocaleDateString('sv');
   $('goal-info').textContent = g ? `Avec ta VMA de ${fr(vma)} km/h : allure visée ≈ ${fr(g.kmh)} km/h (${fmt(3600 / g.kmh)} /km), temps visé ≈ ${fmt(g.seconds)}. Le plan s'organise jusqu'à la course : base, phase spécifique, puis une semaine d'affûtage.`
     : 'Choisis une distance et une date (au moins 9 jours à l\'avance) : le plan guidé s\'organise autour.';
+  $('aaps-status').textContent = !native ? '' : 'Glycémie et IOB : recherche des données AAPS…';
+  if (native) native.aapsStatus().then((a) => {
+    const g = glucoseView(a);
+    $('aaps-status').textContent = g
+      ? `Glycémie et IOB : dernière donnée AAPS reçue à ${new Date(a.receivedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} (${g.bg} ${g.unit}, IOB ${g.iob ?? '-'} U).`
+      : 'Glycémie et IOB : aucune donnée reçue d\'AAPS. Dans AAPS, active le plugin « Samsung Tizen » (Générateur de configuration → Synchronisation).';
+  });
   const bk = pref('backup', null);
   $('p-autobk').checked = autoBk; $('p-autobk').disabled = !native;
   $('bk-status').textContent = !native ? 'Disponible uniquement dans l\'appli Android.'
@@ -417,7 +425,7 @@ function openRun(w, saved) {
     setBtns('paused');
     $('r-info').textContent = 'Séance reprise : appuie sur Start du tapis ou sur Reprendre.';
   }
-  drawRun(); showRec();
+  drawRun(); showRec(); showGlucose();
   unlock(); // le clic qui ouvre cet écran autorise le son, même si le départ vient du tapis
   ensureConnected(true).then((ok) => { if (ok) { keepAwake(); if (run?.runner) run.runner.controller = tm; } });
 }
@@ -443,6 +451,26 @@ setBig(localStorage.big === '1');
 function saveResume() {
   if (run?.rec) setPref('resume', { w: run.w, scale: run.scale, runner: run.runner?.state(), rec: { ...run.rec }, at: Date.now() });
 }
+// ---------- Glycémie et IOB (AAPS) ----------
+// AAPS diffuse son état aux autres applis du téléphone ; l'APK le reçoit et la page le relit toutes les 5 s.
+// En démo, ?aaps=1 simule une diffusion.
+const fakeAaps = async () => ({ available: true, glucoseMgdl: 97 + Math.round(Math.sin(Date.now() / 60000) * 8), glucoseTimeStamp: Date.now() - 120000, units: 'mg/dl', slopeArrow: '→', deltaMgdl: -2, iob: 3.12, low: 72, high: 180, receivedAt: Date.now() });
+const getAaps = native ? native.aapsStatus : new URLSearchParams(location.search).has('aaps') ? fakeAaps : null;
+const BG_STATE = { low: ['var(--bad)', 'BAS '], in: ['var(--ok)', ''], high: ['var(--sp)', 'HAUT '] };
+async function showGlucose() {
+  if (!getAaps) return;
+  const g = glucoseView(await getAaps());
+  $('c-bg').hidden = $('c-iob').hidden = !g;
+  document.querySelector('#run .metrics').classList.toggle('aaps', !!g);
+  if (!g) return;
+  $('m-bg').textContent = g.bg; $('m-bg').classList.toggle('stale', g.stale);
+  // Une mesure trop ancienne est grisée et datée : elle ne doit pas passer pour la glycémie actuelle.
+  $('m-bgl').innerHTML = g.stale ? `il y a ${g.age} min`
+    : `<i class="zdot" style="background:${BG_STATE[g.state][0]}"></i>${BG_STATE[g.state][1]}${esc(g.arrow)} ${g.delta} ${g.unit}`;
+  $('m-iob').textContent = g.iob ?? '-';
+}
+setInterval(() => { if (!$('run').hidden) showGlucose(); }, 5000);
+
 // Départ et pause déclenchés depuis la console du tapis (écran Course ouvert uniquement).
 const armed = () => run && !$('run').hidden;
 function consoleStart() { if (armed() && run.state !== 'running') startRun(false); }

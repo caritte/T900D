@@ -111,4 +111,15 @@ assert.equal(gs(0, c0 + 55.5 * D).program, null);              // veille
 assert.equal(gs(0, c0 + 58 * D).program.id, 'en2');            // objectif passé : retour au plan normal
 assert.equal(advance({ level: 2, idx: 2, goal }, 'goal-10-2', c0 + 30 * D).idx, 3);
 assert.deepEqual(goalTarget(goal, 12), { kmh: 10.6, seconds: 3409 });
+
+// Glycémie AAPS
+const { glucoseView } = await import('../src/glucose.js');
+const gt = 1e12, st0 = { glucoseMgdl: 97.4, glucoseTimeStamp: gt - 3 * 60000, units: 'mg/dl', slopeArrow: '→', deltaMgdl: -2, iob: 3.123, low: 72, high: 180 };
+assert.deepEqual(glucoseView(st0, gt), { bg: '97', unit: 'mg/dL', arrow: '→', delta: '−2', state: 'in', age: 3, stale: false, iob: '3,12' });
+assert.equal(glucoseView({ ...st0, glucoseMgdl: 65 }, gt).state, 'low');
+assert.equal(glucoseView({ ...st0, glucoseMgdl: 210, deltaMgdl: 6 }, gt).delta, '+6');
+assert.equal(glucoseView(st0, gt + 10 * 60000).stale, true);
+const mm = glucoseView({ ...st0, glucoseMgdl: 126, units: 'mmol', low: 4, high: 10, deltaMgdl: 9 }, gt);
+assert.deepEqual([mm.bg, mm.unit, mm.delta, mm.state], ['7,0', 'mmol/L', '+0,5', 'in']);
+assert.equal(glucoseView({ iob: 1 }, gt), null); assert.equal(glucoseView(null), null);
 console.log('OK');

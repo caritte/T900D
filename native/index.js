@@ -5,6 +5,7 @@ import { TextToSpeech } from '@capacitor-community/text-to-speech';
 import { KeepAwake } from '@capacitor-community/keep-awake';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
+import { registerPlugin } from '@capacitor/core';
 import { TreadmillBase, UUID } from '../src/ftms.js';
 
 const FTMS = numberToUUID(UUID.service), DATA = numberToUUID(UUID.treadmillData);
@@ -68,3 +69,7 @@ export async function saveBackup(name, text) {
   await write(alt);
   return `Documents/T900D/${alt}`;
 }
+
+// Dernier état diffusé par AAPS (glycémie, IOB), reçu côté Android par AapsReceiver.
+const Aaps = registerPlugin('Aaps');
+export const aapsStatus = () => Aaps.getStatus().catch(() => ({ available: false }));

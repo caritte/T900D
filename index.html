@@ -59,6 +59,7 @@
     <section class="card">
       <p><label><input type="checkbox" id="p-beep"> Bips avant les changements d'étape</label></p>
       <p><label><input type="checkbox" id="p-voice"> Annonces vocales</label></p>
+      <p id="aaps-status" class="muted"></p>
       <p><label><input type="checkbox" id="p-autobk"> Sauvegarde automatique après chaque séance</label></p>
       <p id="bk-status" class="muted"></p>
       <div class="acts"><button id="export" class="ghost">Exporter mes données</button><button id="import" class="ghost">Importer</button></div>
@@ -114,6 +115,8 @@
         <div><b id="m-speed" class="sp">-</b><small>km/h</small></div>
         <div><b id="m-incline" class="in">-</b><small>% pente</small></div>
         <div><b id="m-hr" class="hr">-</b><small id="m-hrl">bpm</small></div>
+        <div id="c-bg" hidden><b id="m-bg">-</b><small id="m-bgl"></small></div>
+        <div id="c-iob" hidden><b id="m-iob">-</b><small>IOB · U</small></div>
         <div><b id="m-dist">-</b><small>km</small></div>
         <div><b id="m-time">-</b><small>temps</small></div>
         <div><b id="m-kcal">-</b><small>kcal</small></div>
