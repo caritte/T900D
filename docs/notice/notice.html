@@ -1,4 +1,4 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>T900D v3 – Notice d'utilisation</title>
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>T900D v4 – Notice d'utilisation</title>
 <style>
 @page{size:A4;margin:16mm 15mm 16mm}
 *{box-sizing:border-box}
@@ -22,13 +22,14 @@ th,td{border:1px solid #cbd2dd;padding:4px 7px;text-align:left;vertical-align:to
 b.k{background:#eef2f8;border:1px solid #cbd2dd;border-radius:4px;padding:0 4px;font-weight:600;white-space:nowrap}
 .toc li{margin:4px 0}
 #histfigs img{width:auto;height:100mm}
+.pb td,.pb th{padding:3px 6px;font-size:9pt}
 </style></head><body>
 
 <div class="cover">
   <h1>T900D</h1>
   <div class="sub">Notice d'utilisation de l'application<br>pour tapis de course Domyos T900D</div>
   <img src="shots/home.png">
-  <div class="sub">Version v3 · application Android (APK) · novembre 2026</div>
+  <div class="sub">Version v4 · application Android (APK) · novembre 2026</div>
 </div>
 
 <section>
@@ -37,9 +38,13 @@ b.k{background:#eef2f8;border:1px solid #cbd2dd;border-radius:4px;padding:0 4px;
 <li>Présentation</li><li>Sécurité</li><li>Installation et mises à jour</li><li>Connexion au tapis</li><li>L'écran d'accueil</li>
 <li>Le plan guidé : la séance du jour</li><li>Choisir et lancer un programme</li><li>L'écran de course</li><li>Intensité, affichage géant et reprise</li><li>Fréquence cardiaque et zones</li>
 <li>La VMA</li><li>Mes séances : favoris et créations</li><li>Créer une séance pas à pas</li><li>Course libre</li>
-<li>Historique et statistiques</li><li>Progression</li><li>Réglages et sauvegarde</li><li>En cas de problème</li>
+<li>Historique et statistiques</li><li>Progression</li><li>Analyse</li><li>Samsung Health et Santé Connect</li>
+<li>Glycémie et insuline active (AAPS)</li><li>Réglages et sauvegarde</li><li>En cas de problème</li>
 </ol>
-<h2 style="margin-top:14mm">1. Présentation</h2>
+</section>
+
+<section>
+<h2>1. Présentation</h2>
 <p>L'application pilote le tapis Domyos T900D en Bluetooth depuis un téléphone Android. Elle permet de :</p>
 <ul>
 <li>lancer l'un des <b>32 programmes d'entraînement</b> intégrés, classés par catégorie et par niveau ;</li>
@@ -49,6 +54,9 @@ b.k{background:#eef2f8;border:1px solid #cbd2dd;border-radius:4px;padding:0 4px;
 <li>adapter l'<b>intensité</b> d'une séance à ta forme du jour et passer en <b>affichage géant</b> ;</li>
 <li>afficher en direct la vitesse, la pente, la distance, le temps, les calories et la <b>fréquence cardiaque</b> avec sa <b>zone</b> (ceinture pectorale du tapis) ;</li>
 <li>enregistrer chaque séance, la <b>reprendre</b> si l'appli a été fermée en route, et consulter <b>l'historique</b>, les <b>courbes de progression</b> et les records ;</li>
+<li><b>analyser</b> l'effet de l'entraînement sur ton cœur au fil des semaines ;</li>
+<li>envoyer chaque séance vers <b>Samsung Health</b>, par Santé Connect ;</li>
+<li>afficher la <b>glycémie</b> et l'<b>insuline active</b> pendant la course, si l'appli AAPS est installée sur le téléphone ;</li>
 <li><b>sauvegarder automatiquement</b> les données après chaque séance.</li>
 </ul>
 <p>Chaque téléphone garde ses propres données : sa VMA, sa FC max, son plan, ses séances, ses favoris et son historique.</p>
@@ -69,8 +77,8 @@ b.k{background:#eef2f8;border:1px solid #cbd2dd;border-radius:4px;padding:0 4px;
 <h2 style="margin-top:10mm">3. Installation et mises à jour</h2>
 <h3>Installer</h3>
 <ol>
-<li>Sur le téléphone, ouvre le lien : <b>https://github.com/caritte/T900D/releases/latest/download/t900d-v3.apk</b></li>
-<li>Ouvre le fichier <b>t900d-v3.apk</b> téléchargé.</li>
+<li>Sur le téléphone, ouvre le lien : <b>https://github.com/caritte/T900D/releases/latest/download/t900d-v4.apk</b></li>
+<li>Ouvre le fichier <b>t900d-v4.apk</b> téléchargé.</li>
 <li>Android demande d'autoriser l'installation depuis cette source, puis affiche un avertissement « application inconnue » : accepte. C'est normal pour une appli hors Play Store.</li>
 <li><b>Téléphones Samsung</b> : si le message « Application inconnue bloquée » apparaît, ouvre Paramètres → Sécurité et confidentialité → <b>Bloqueur automatique</b>, désactive-le, installe l'appli, puis réactive-le si tu veux.</li>
 <li>Au premier appui sur <b class="k">Connecter</b>, accepte la permission <b>« Appareils à proximité »</b> (Bluetooth). Sur Android 11 ou plus ancien, c'est la permission de localisation qui est demandée.</li>
@@ -78,8 +86,8 @@ b.k{background:#eef2f8;border:1px solid #cbd2dd;border-radius:4px;padding:0 4px;
 <h3>Mettre à jour</h3>
 <p>Les mises à jour ne sont pas automatiques. Télécharge le nouveau fichier et installe-le <b>par-dessus</b> l'appli existante, sans la désinstaller : toutes les données sont conservées.</p>
 <h3>Les versions</h3>
-<p>Trois fichiers sont proposés au téléchargement : la dernière version (<b>v3</b>, décrite dans cette notice) et les deux précédentes (<b>t900d-v2.apk</b> et <b>t900d-v1.apk</b>). Ils s'installent l'un par-dessus l'autre sans perte de données, ce qui permet de revenir en arrière. La version installée est indiquée en bas de l'écran Réglages.</p>
-<div class="warn">Ne désinstalle pas l'appli sans avoir exporté tes données (chapitre 17) : la désinstallation efface l'historique et les séances.</div>
+<p>Cette notice décrit la version <b>v4</b>, la seule qui reçoit des mises à jour. Les fichiers des versions précédentes (<b>t900d-v1.apk</b>, <b>t900d-v2.apk</b>, <b>t900d-v3.apk</b>) restent téléchargeables, mais Android refuse de les installer par-dessus une version plus récente : pour revenir à l'une d'elles, il faut exporter tes données, désinstaller l'appli, installer l'ancienne version, puis importer. La version installée est indiquée en bas de l'écran Réglages.</p>
+<div class="warn">Ne désinstalle pas l'appli sans avoir exporté tes données (chapitre 20) : la désinstallation efface l'historique et les séances.</div>
 
 </section>
 
@@ -125,7 +133,7 @@ b.k{background:#eef2f8;border:1px solid #cbd2dd;border-radius:4px;padding:0 4px;
 <tr><td>Course libre</td><td>Pilotage manuel, sans programme</td></tr>
 </table>
 <h3>Suivi</h3>
-<ul><li><b>Historique</b> : séances passées et statistiques.</li><li><b>Progression</b> : courbes et records.</li><li><b>Réglages</b> : VMA, FC max, plan, sons, sauvegarde.</li></ul>
+<ul><li><b>Historique</b> : séances passées et statistiques.</li><li><b>Progression</b> : courbes et records.</li><li><b>Analyse</b> : cœur, récupération, zones.</li><li><b>Réglages</b> : VMA, FC max, plan, sons, Santé Connect, sauvegarde.</li></ul>
 <h3>Navigation</h3>
 <p>La flèche <b class="k">‹</b> et le bouton Retour d'Android remontent d'un écran. L'appli fonctionne en portrait comme en paysage.</p>
 </div>
@@ -159,7 +167,7 @@ b.k{background:#eef2f8;border:1px solid #cbd2dd;border-radius:4px;padding:0 4px;
 </ul>
 <p>Ce sont des conseils : le bouton Lancer reste utilisable.</p>
 <h3>Préparer une course : l'objectif</h3>
-<p>Dans <b>Réglages</b>, choisis « Objectif de course » (<b>5 km</b>, <b>10 km</b> ou <b>Semi-marathon</b>) et la <b>date de la course</b>, au moins 9 jours à l'avance. Le plan s'organise alors jusqu'à cette date :</p>
+<p>Sur la carte « Séance du jour », le bouton <b class="k">🎯 Objectif de course</b> ouvre directement ce réglage ; il devient <b class="k">🎯 Modifier l'objectif</b> une fois l'objectif défini. Dans <b>Réglages</b>, choisis « Objectif de course » (<b>5 km</b>, <b>10 km</b> ou <b>Semi-marathon</b>) et la <b>date de la course</b>, au moins 9 jours à l'avance. Le plan s'organise alors jusqu'à cette date :</p>
 <table>
 <tr><th style="width:26%">Phase</th><th>Séances proposées, à tour de rôle</th></tr>
 <tr><td>Base (premiers 40 % du temps)</td><td>Footing, fractionné court, sortie longue.</td></tr>
@@ -407,15 +415,80 @@ b.k{background:#eef2f8;border:1px solid #cbd2dd;border-radius:4px;padding:0 4px;
 </section>
 
 <section>
-<h2>17. Réglages et sauvegarde</h2>
+<h2>17. Analyse</h2>
+<div class="two"><div>
+<p>La tuile <b>Analyse</b> mesure l'effet de l'entraînement sur ton cœur. Elle n'utilise que les séances faites avec la ceinture cardiaque, et il faut plusieurs semaines de séances pour qu'une tendance soit fiable. Touche un point ou une barre pour lire le détail.</p>
+<h3>Fréquence cardiaque selon la vitesse</h3>
+<p>Ta fréquence moyenne à chaque vitesse, par périodes de 4 semaines : les 4 dernières, les 4 précédentes, et il y a 8 à 12 semaines. Plus la courbe est claire, plus la période est récente.</p>
+<ul>
+<li>Si la courbe la plus récente passe <b>sous</b> les autres, ton cœur travaille moins pour le même effort : tu progresses.</li>
+<li>Le tableau compare les deux périodes les plus récentes. Un <b>écart négatif</b> est un progrès.</li>
+<li>Ne comptent que les phases à plat (pente de 0 ou 1 %) où la vitesse est stable depuis 90 secondes. Une vitesse n'apparaît qu'avec au moins 2 minutes de mesures.</li>
+</ul>
+<h3>Récupération cardiaque</h3>
+<p>De combien de battements ta fréquence baisse dans la minute qui suit un effort intense. Chaque point est une séance de fractionné, avec la moyenne de ses récupérations. Plus la valeur est <b>haute</b>, mieux tu récupères.</p>
+<p>Une séance compte si elle contient au moins 3 efforts de 45 secondes ou plus, chacun suivi d'une minute de récupération. Les footings ne sont pas pris en compte.</p>
+<h3>Zones cardiaques par semaine</h3>
+<p>Le temps passé dans chaque zone sur les 8 dernières semaines, en barres empilées. En dessous, la part de <b>facile</b> (Z1-Z2), de <b>modéré</b> (Z3) et de <b>dur</b> (Z4-Z5). Le repère courant en endurance est d'environ 80 % de facile.</p>
+<div class="tip">Quelques battements d'écart d'une période à l'autre peuvent venir de la fatigue, de la chaleur ou de l'heure. C'est la tendance sur plusieurs périodes qui compte. Les zones dépendent de ta FC max (chapitre 10).</div>
+</div>
+<figure><img src="shots/ana.png" style="max-height:215mm;width:auto;max-width:100%"><figcaption>L'écran Analyse</figcaption></figure></div>
+</section>
+
+<section>
+<h2>18. Samsung Health et Santé Connect</h2>
+<p>L'appli peut envoyer chaque séance à <b>Santé Connect</b> (Health Connect), le carrefour de données santé d'Android. Samsung Health la récupère ensuite. Cette fonction demande <b>Android 14 ou plus récent</b> : sur une version plus ancienne, le réglage n'apparaît pas.</p>
+<h3>Activer</h3>
+<ol>
+<li>Dans <b>Réglages</b>, coche <b>« Enregistrer les séances dans Health Connect »</b>.</li>
+<li>Android affiche une fenêtre de permission : autorise Exercice, Distance, Fréquence cardiaque et Total des calories brûlées. L'appli ne fait qu'<b>écrire</b> : elle ne lit aucune de tes données de santé.</li>
+<li>Dans <b>Samsung Health</b> → Paramètres → Santé Connect, vérifie que la lecture de l'exercice est autorisée.</li>
+</ol>
+<h3>Ce qui est envoyé</h3>
+<p>À la fin de chaque séance, automatiquement : une « course sur tapis » avec son début, sa fin, sa distance, ses calories et sa courbe de fréquence cardiaque. Samsung Health l'affiche comme un exercice <b>Tapis de course</b>, parfois après quelques minutes ; tire son écran d'accueil vers le bas pour forcer la synchronisation.</p>
+<p>La pente et les étapes du programme ne sont pas transmises. Samsung Health calcule ses propres zones cardiaques, qui diffèrent de celles de T900D.</p>
+<h3>Les deux boutons</h3>
+<ul>
+<li><b class="k">Envoyer la dernière séance</b> : pour tester, ou après un envoi échoué.</li>
+<li><b class="k">Envoyer tout l'historique</b> : envoie toutes les séances déjà enregistrées. À faire une fois, après avoir activé la fonction.</li>
+</ul>
+<p>Renvoyer une séance ne crée pas de doublon : elle est remplacée. La ligne sous la case indique le dernier envoi réussi, ou l'erreur rencontrée.</p>
+<div class="tip">Il n'y a rien à installer : sur Android 14 et plus, Santé Connect fait partie du système. Tu le trouves en cherchant « Santé Connect » dans les paramètres du téléphone.</div>
+
+<h2 style="margin-top:10mm">19. Glycémie et insuline active (AAPS)</h2>
+<div class="two"><div>
+<p>Si l'appli <b>AAPS</b> est installée sur le même téléphone, l'écran de course peut afficher deux compteurs de plus : la <b>glycémie</b> et l'<b>insuline active</b> (IOB). Sans AAPS, rien ne change : ces compteurs n'existent pas.</p>
+<h3>Activer dans AAPS</h3>
+<p>Dans AAPS : Générateur de configuration → Synchronisation → coche <b>« Samsung Tizen »</b>. Malgré son nom, c'est ce module qui diffuse les données aux autres applis du téléphone. Rien ne passe par Internet, et T900D n'envoie jamais rien à AAPS.</p>
+<h3>Ce qui s'affiche</h3>
+<ul>
+<li><b>Glycémie</b> : la valeur, la flèche de tendance, la variation et l'unité choisie dans AAPS. Une pastille est verte dans la cible, rouge avec la mention <b>BAS</b>, ou orange avec <b>HAUT</b>, selon tes seuils AAPS.</li>
+<li><b>IOB</b> : l'insuline active, en unités.</li>
+</ul>
+<p>Les deux compteurs apparaissent aussi en affichage géant. Dans Réglages, une ligne indique l'heure de la dernière donnée reçue.</p>
+<div class="warn">
+<b>C'est un affichage d'information, pas une alarme.</b>
+<ul>
+<li>AAPS ne diffuse qu'à chaque cycle, environ toutes les 5 minutes : la valeur affichée peut avoir quelques minutes.</li>
+<li>Une glycémie de plus de 11 minutes s'affiche <b>grisée</b>, avec son âge (« il y a 14 min »). Ne t'y fie pas.</li>
+<li>T900D ne sonne pas en cas d'hypoglycémie. Les alertes restent celles d'AAPS.</li>
+</ul></div>
+</div>
+<figure><img src="shots/run-aaps.png"><figcaption>La glycémie et l'IOB sur l'écran de course</figcaption></figure></div>
+</section>
+
+<section>
+<h2>20. Réglages et sauvegarde</h2>
 <div class="two"><div>
 <ul>
 <li><b>Ma VMA</b> : voir chapitre 11.</li>
 <li><b>FC max</b>, zones et <b>Alerte vocale FC</b> : voir chapitre 10.</li>
 <li><b>Plan guidé</b>, <b>Objectif de course</b> et <b>Date de la course</b> : voir chapitre 6.</li>
 <li><b>Bips</b> et <b>Annonces vocales</b> : deux cases à cocher indépendantes.</li>
+<li><b>Enregistrer les séances dans Health Connect</b> et ses deux boutons d'envoi : voir chapitre 18.</li>
+<li><b>Glycémie et IOB</b> : la ligne n'apparaît que si le téléphone a déjà reçu des données d'AAPS (chapitre 19).</li>
 <li><b>Sauvegarde automatique après chaque séance</b> : quand la case est cochée, l'appli écrit le fichier de sauvegarde dans le dossier <b>Documents/T900D</b> du téléphone à la fin de chaque séance. Ce dossier est conservé si l'appli est désinstallée. La ligne en dessous indique la date de la dernière sauvegarde, ou l'erreur rencontrée.</li>
-<li><b>Exporter mes données</b> : crée le fichier <b>t900d-sauvegarde.json</b> (séances créées, favoris, VMA et son historique, FC max, plan, historique des séances) et ouvre le partage Android pour l'envoyer par mail, Drive ou messagerie.</li>
+<li><b>Exporter mes données</b> : crée le fichier <b>t900d-sauvegarde.json</b> (séances créées, favoris, VMA et son historique, FC max, plan et objectif, historique des séances) et ouvre le partage Android pour l'envoyer par mail, Drive ou messagerie.</li>
 <li><b>Importer</b> : choisis un fichier de sauvegarde. Les séances de l'historique déjà présentes ne sont pas dupliquées ; les séances créées sont ajoutées à la suite. La VMA, la FC max et le plan sont remplacés par ceux du fichier.</li>
 <li><b>Journal Bluetooth</b> : messages techniques, utiles en cas de problème de connexion.</li>
 <li><b>Version</b> : le numéro de la version installée, tout en bas.</li>
@@ -423,13 +496,13 @@ b.k{background:#eef2f8;border:1px solid #cbd2dd;border-radius:4px;padding:0 4px;
 <div class="tip">Les données ne sont stockées que sur le téléphone. La sauvegarde automatique protège d'une désinstallation, pas de la perte du téléphone : envoie-toi un export de temps en temps, et toujours avant de changer de téléphone.</div>
 <p>Pour restaurer après une réinstallation : <b>Importer</b>, puis choisis le fichier dans Documents/T900D. Après une réinstallation, les nouvelles sauvegardes automatiques peuvent porter la date dans leur nom.</p>
 </div>
-<figure><img src="shots/prefs.png"><figcaption>Les réglages</figcaption></figure></div>
+<figure><img src="shots/prefs.png" style="max-height:200mm;width:auto;max-width:100%"><figcaption>Les réglages</figcaption></figure></div>
 
 </section>
 
 <section>
-<h2>18. En cas de problème</h2>
-<table>
+<h2>21. En cas de problème</h2>
+<table class="pb">
 <tr><th style="width:38%">Problème</th><th>Que faire</th></tr>
 <tr><td>« Application inconnue bloquée » à l'installation (Samsung)</td><td>Désactive le Bloqueur automatique le temps de l'installation : Paramètres → Sécurité et confidentialité → Bloqueur automatique.</td></tr>
 <tr><td>Le tapis n'apparaît pas dans la liste</td><td>Vérifie que le tapis est allumé, que le Bluetooth du téléphone est activé et que la permission « Appareils à proximité » est accordée. Vérifie qu'aucun autre téléphone n'est déjà connecté au tapis.</td></tr>
@@ -438,6 +511,10 @@ b.k{background:#eef2f8;border:1px solid #cbd2dd;border-radius:4px;padding:0 4px;
 <tr><td>Les zones semblent trop hautes ou trop basses</td><td>Vérifie ta FC max dans Réglages : toutes les zones en dépendent.</td></tr>
 <tr><td>Le plan n'avance pas</td><td>Il n'avance que si la séance proposée est terminée en entier, lancée depuis un programme intégré. Utilise <b>Passer</b> pour avancer à la main.</td></tr>
 <tr><td>L'indice cardio est vide</td><td>Il faut au moins deux séances avec la ceinture pectorale et une minute de course chacune.</td></tr>
+<tr><td>La case Health Connect n'apparaît pas dans Réglages</td><td>Le téléphone est sous Android 13 ou plus ancien : la fonction demande Android 14.</td></tr>
+<tr><td>La séance n'arrive pas dans Samsung Health</td><td>Vérifie la ligne « Dernier envoi réussi » dans Réglages, puis que Samsung Health a le droit de lire l'exercice dans Santé Connect, et tire son accueil vers le bas pour synchroniser.</td></tr>
+<tr><td>La glycémie ne s'affiche pas</td><td>Vérifie que le module « Samsung Tizen » est coché dans AAPS, puis attends un cycle de boucle (jusqu'à 5 minutes).</td></tr>
+<tr><td>L'écran Analyse est presque vide</td><td>Il faut des séances avec la ceinture cardiaque, à vitesse stable et à plat, et plusieurs semaines pour comparer les périodes.</td></tr>
 <tr><td>La sauvegarde automatique indique une erreur</td><td>Autorise l'accès au stockage si Android le demande. Sinon, utilise <b>Exporter mes données</b> et signale le message d'erreur affiché dans Réglages.</td></tr>
 <tr><td>La carte « Séance interrompue » n'apparaît pas</td><td>Elle n'est proposée que pendant 12 heures, et seulement si la séance n'a été ni terminée ni arrêtée avec le bouton Arrêter.</td></tr>
 <tr><td>Une étape en distance dure plus longtemps que prévu</td><td>C'est normal : elle se termine à la distance réellement parcourue, accélération du tapis comprise.</td></tr>

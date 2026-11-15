@@ -4,6 +4,13 @@ Application personnelle qui pilote un tapis de course **Domyos T900D** en Blueto
 
 L'utilisateur n'est pas développeur : il teste sur son téléphone et son tapis, puis décrit le résultat ou envoie des captures. Il veut des réponses en français, courtes et directes.
 
+## Où en est le projet
+
+- Version courante : **v4**. L'utilisateur veut que les évolutions continuent dans la v4, sans créer de nouvelle version tant qu'il ne le demande pas.
+- Contenu de la v4 : 32 programmes par catégorie et niveau, éditeur graphique de séances (étapes en durée ou en distance), plan guidé avec objectif de course, intensité réglable, affichage géant, reprise d'une séance interrompue, zones cardiaques et alerte vocale, historique, écrans Progression et Analyse, sauvegarde automatique, envoi vers Health Connect, affichage de la glycémie et de l'IOB d'AAPS.
+- Notices : une par version dans `docs/`, la v4 est à jour à la date de ce fichier.
+- L'appli est installée sur plusieurs téléphones de la famille ; un seul reçoit les données d'AAPS.
+
 ## Architecture
 
 Une appli web sans framework ni bundler (modules ES natifs), emballée dans un APK par Capacitor.
@@ -96,7 +103,9 @@ Depuis la v4, un réglage permet d'enregistrer chaque séance terminée dans Hea
 ## Notice d'utilisation
 
 - Un PDF par version : `docs/notice-t900d-<version>.pdf`. Les anciennes notices ne sont pas modifiées.
-- Source de la notice courante : `docs/notice/notice.html`. Captures : `node docs/notice/shots.cjs`. PDF : `node docs/notice/build.cjs v3`.
+- Source de la notice courante : `docs/notice/notice.html`. Captures : `node docs/notice/shots.cjs`. PDF : `node docs/notice/build.cjs v4`.
+- `shots.cjs` tourne en mode démo avec un historique fictif. Les lignes de Réglages propres à l'APK (Health Connect, AAPS, sauvegarde) y sont affichées artificiellement, et la capture avec glycémie utilise `?aaps=1` : aucune donnée réelle de l'utilisateur n'entre dans la notice.
+- La notice est publique (dépôt public) : y décrire la fonction AAPS de façon générale, sans rien dire de l'utilisateur.
 - Pour une nouvelle version : refaire les captures, adapter le texte (numéro de version, noms des fichiers APK, renvois entre chapitres), régénérer, puis **relire le texte complet et contrôler la mise en page page par page**.
 - Ton : tutoiement, phrases courtes, noms des boutons tels qu'affichés.
 
@@ -111,4 +120,6 @@ L'appli commande un tapis sur lequel quelqu'un court.
 
 ## Idées non réalisées
 
-Pilotage de la vitesse par la zone cardiaque, estimation automatique de la VMA, export Strava ou Garmin (TCX/FIT), parcours GPX avec dénivelé réel, objectifs hebdomadaires, synchronisation entre téléphones (écartée : demanderait un service en ligne).
+Pilotage de la vitesse par la zone cardiaque, estimation automatique de la VMA, export Strava ou Garmin (TCX/FIT), parcours GPX avec dénivelé réel, objectifs hebdomadaires, dérive cardiaque sur les footings, charge d'entraînement hebdomadaire, comparaison d'une même séance dans le temps.
+
+Écartées par l'utilisateur : la synchronisation entre téléphones (demanderait un service en ligne), les profils multiples sur un même téléphone, l'enregistrement de la glycémie dans les séances.

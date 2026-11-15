@@ -38,7 +38,18 @@ const { spawn } = require('child_process');
   await p.goto(U); await p.waitForTimeout(500);
   await shot('home');
   await tile('Progression'); await p.waitForTimeout(400); await shot('prog', true); await home();
-  await tile('Réglages'); await shot('prefs', true); await home();
+  await tile('Analyse'); await p.waitForTimeout(500); await shot('ana', true); await home();
+  await tile('Réglages');
+  // Les lignes Health Connect et AAPS n'existent que dans l'APK : on les affiche ici telles qu'elles y apparaissent.
+  await p.evaluate(() => {
+    for (const id of ['hc-row', 'hc-status', 'hc-acts', 'aaps-status']) document.getElementById(id).hidden = false;
+    document.getElementById('p-hc').checked = true;
+    document.getElementById('hc-status').textContent = 'Dernier envoi réussi le 15/11/2026 19:56 : Footing 45′ (4 éléments)';
+    document.getElementById('aaps-status').textContent = 'Glycémie et IOB : dernière donnée AAPS reçue le 15/11/2026 19:57 (116 mg/dL, IOB 0,75 U).';
+    const a = document.getElementById('p-autobk'); a.disabled = false; a.checked = true;
+    document.getElementById('bk-status').textContent = 'Dernière sauvegarde le 15/11/2026 15:12 dans Documents/T900D/t900d-sauvegarde.json';
+  });
+  await shot('prefs', true); await home();
   await tile('Historique'); await p.waitForTimeout(300); await shot('hist');
   await p.locator('.se').nth(1).click(); await p.waitForTimeout(300); await shot('sess', true); await home();
   await tile('Mes séances'); await shot('mine');
@@ -53,6 +64,11 @@ const { spawn } = require('child_process');
   await p.setViewportSize({ width: 800, height: 370 }); await p.waitForTimeout(700); await shot('run-big-land');
   await p.click('#r-big'); await p.waitForTimeout(500); await shot('run-land');
   await p.setViewportSize({ width: 390, height: 760 }); await p.waitForTimeout(6000);
+  await p.goto(U); await p.waitForTimeout(600);
+  // Écran de course avec glycémie et IOB simulés (?aaps=1) ; la séance interrompue reste proposée ensuite.
+  await p.goto(U + '&aaps=1'); await p.waitForTimeout(500);
+  await p.locator('#resume [data-a=go]').click(); await p.waitForTimeout(900); await p.click('#r-start'); await p.waitForTimeout(7000);
+  await shot('run-aaps');
   await p.goto(U); await p.waitForTimeout(600);
   await p.locator('#resume').screenshot({ path: require('path').join(__dirname, 'shots', 'resume.png') });
   await b.close(); srv.kill(); console.log('ok');
