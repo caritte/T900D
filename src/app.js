@@ -523,4 +523,5 @@ function renderProg() {
 $('s-del').onclick = async () => { if (confirm('Supprimer cette séance de l\'historique ?')) { await delSession(sess.id); history.back(); } };
 
 renderHome(); setStatus();
+fetch('version.json').then((r) => r.json()).then((v) => { $('version').textContent = 'Version ' + v.version; }).catch(() => {});
 if (!native && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

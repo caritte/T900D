@@ -1,6 +1,7 @@
 # Construit deux APK Android (Capacitor) et les publie dans la release « apk » :
-#   t900d.apk             dernière version   → …/releases/latest/download/t900d.apk
-#   t900d-precedente.apk  version de repli, construite depuis le commit noté dans le fichier stable-ref
+#   t900d-<version>.apk    dernière version (nom lu dans version.json, ex. v2)
+#   t900d-<previous>.apk   version de repli (ex. v1), construite depuis le commit noté dans le fichier stable-ref
+# Téléchargement : …/releases/latest/download/t900d-v2.apk
 # Les deux portent le même versionCode (numéro de build) : on peut passer de l'une à l'autre sans désinstaller.
 name: APK Android
 on:
@@ -23,19 +24,21 @@ jobs:
         with: { node-version: 22, cache: npm }
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 21 }
+      - id: ver
+        run: echo "v=$(node -p "require('./version.json').version")" >> "$GITHUB_OUTPUT"
       - run: npm ci
       - run: npm test
       - run: npm run sync
       - name: Gradle
         working-directory: android
-        run: ./gradlew assembleDebug -PversionCode=${{ github.run_number }} --no-daemon
-      - run: cp android/app/build/outputs/apk/debug/app-debug.apk t900d.apk
+        run: ./gradlew assembleDebug -PversionCode=${{ github.run_number }} -PversionLabel=${{ steps.ver.outputs.v }} --no-daemon
+      - run: cp android/app/build/outputs/apk/debug/app-debug.apk t900d-${{ steps.ver.outputs.v }}.apk
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: apk
-          name: T900D – APK Android (build ${{ github.run_number }})
-          body: "`t900d.apk` : dernière version. `t900d-precedente.apk` : version précédente validée, pour revenir en arrière. Ouvre le fichier sur le téléphone pour l'installer par-dessus l'appli, les données sont conservées."
-          files: t900d.apk
+          name: T900D ${{ steps.ver.outputs.v }} (build ${{ github.run_number }})
+          body: "Le numéro le plus élevé est la dernière version, l'autre est la version précédente, pour revenir en arrière. Ouvre le fichier sur le téléphone pour l'installer par-dessus l'appli : les données sont conservées."
+          files: t900d-${{ steps.ver.outputs.v }}.apk
           make_latest: true
 
   precedente:
@@ -44,7 +47,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - id: ref
-        run: echo "sha=$(cat stable-ref)" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "sha=$(cat stable-ref)" >> "$GITHUB_OUTPUT"
+          echo "v=$(node -p "require('./version.json').version")" >> "$GITHUB_OUTPUT"
+          echo "p=$(node -p "require('./version.json').previous")" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         with: { ref: "${{ steps.ref.outputs.sha }}" }
       - uses: actions/setup-node@v4
@@ -56,8 +62,18 @@ jobs:
       - name: Gradle
         working-directory: android
         run: ./gradlew assembleDebug -PversionCode=${{ github.run_number }} --no-daemon
-      - run: cp android/app/build/outputs/apk/debug/app-debug.apk t900d-precedente.apk
+      - run: cp android/app/build/outputs/apk/debug/app-debug.apk t900d-${{ steps.ref.outputs.p }}.apk
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: apk
-          files: t900d-precedente.apk
+          files: t900d-${{ steps.ref.outputs.p }}.apk
+      - name: Ne garder que ces deux fichiers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for a in $(gh release view apk -R ${{ github.repository }} --json assets -q '.assets[].name'); do
+            case "$a" in
+              t900d-${{ steps.ref.outputs.v }}.apk|t900d-${{ steps.ref.outputs.p }}.apk) ;;
+              *) gh release delete-asset apk "$a" -R ${{ github.repository }} -y ;;
+            esac
+          done
