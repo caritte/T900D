@@ -1,5 +1,7 @@
-# Construit l'APK Android (Capacitor) et le publie dans la release « apk ».
-# Téléchargement : https://github.com/<owner>/<repo>/releases/latest/download/t900d.apk
+# Construit deux APK Android (Capacitor) et les publie dans la release « apk » :
+#   t900d.apk             dernière version   → …/releases/latest/download/t900d.apk
+#   t900d-precedente.apk  version de repli, construite depuis le commit noté dans le fichier stable-ref
+# Les deux portent le même versionCode (numéro de build) : on peut passer de l'une à l'autre sans désinstaller.
 name: APK Android
 on:
   push:
@@ -29,6 +31,30 @@ jobs:
           tag_name: apk
           target_commitish: ${{ github.sha }}
           name: T900D – APK Android (build ${{ github.run_number }})
-          body: Télécharge `t900d.apk` sur ton téléphone Android puis ouvre-le pour installer ou mettre à jour l'appli.
+          body: "`t900d.apk` : dernière version. `t900d-precedente.apk` : version précédente validée, pour revenir en arrière. Ouvre le fichier sur le téléphone pour l'installer par-dessus l'appli, les données sont conservées."
           files: t900d.apk
           make_latest: true
+
+  precedente:
+    needs: apk # même release : on évite deux mises à jour simultanées
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: ref
+        run: echo "sha=$(cat stable-ref)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with: { ref: "${{ steps.ref.outputs.sha }}" }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - run: npm ci
+      - run: npm run sync
+      - name: Gradle
+        working-directory: android
+        run: ./gradlew assembleDebug -PversionCode=${{ github.run_number }} --no-daemon
+      - run: cp android/app/build/outputs/apk/debug/app-debug.apk t900d-precedente.apk
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk
+          files: t900d-precedente.apk
