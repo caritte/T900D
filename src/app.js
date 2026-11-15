@@ -306,6 +306,21 @@ $('p-hc').onchange = async (e) => {
   else hcOn = false;
   localStorage.hc = hcOn ? '1' : '0'; renderHealth();
 };
+// Envoi de tout l'historique, séance par séance. Sans risque de doublon : une séance déjà envoyée est remplacée.
+$('hc-all').onclick = async () => {
+  const all = (await mySessions()).sort((a, b) => a.start - b.start);
+  if (!all.length) return alert('Aucune séance dans l\'historique.');
+  if (!confirm(`Envoyer les ${all.length} séances de l'historique à Health Connect ?`)) return;
+  let ok = 0, lastError = '';
+  $('hc-all').disabled = true;
+  for (const [i, x] of all.entries()) {
+    $('hc-status').textContent = `Envoi ${i + 1}/${all.length}…`;
+    try { await native.health.save(healthPayload(x)); ok++; } catch (e) { lastError = e.message; }
+  }
+  $('hc-all').disabled = false;
+  setPref('health', lastError ? { at: Date.now(), error: `${ok}/${all.length} séances envoyées. Dernière erreur : ${lastError}` } : { at: Date.now(), ok: `${ok} séances de l'historique` });
+  renderHealth();
+};
 $('hc-test').onclick = async () => {
   const last = (await mySessions()).sort((a, b) => b.start - a.start)[0];
   if (!last) return alert('Aucune séance dans l\'historique.');
