@@ -2,12 +2,13 @@ import { Treadmill } from './ftms.js';
 import { DemoTreadmill } from './demo.js';
 import { WorkoutRunner, stats, parseWorkout, scaleSteps, distDuration } from './workout.js';
 import { PROGRAMS, CATS, LEVELS, CAT_INFO } from './programs.js';
-import { drawChart, drawSession, drawBars, drawLine, LIMITS } from './chart.js';
+import { drawChart, drawSession, drawBars, drawLine, drawMultiLine, drawStacked, LIMITS } from './chart.js';
 import { loadWorkouts, saveWorkouts, uid, currentUser, loadVma, saveVma, loadFavs, saveFavs, pref, setPref, LEGACY_USER } from './store.js';
 import { ZONES, ZONE_COLORS, zoneOf, zoneTimes } from './hr.js';
 import { planToday, advance, advice, goalActive, goalTarget, GOALS } from './plan.js';
 import { weekly, cardioSeries, records } from './progress.js';
 import { glucoseView } from './glucose.js';
+import { PERIODS, hrBySpeed, recoverySeries, zonesByWeek, intensitySplit } from './analysis.js';
 import { Recorder } from './recorder.js';
 import { putSession, allSessions, delSession } from './db.js';
 import { beep, say, unlock } from './audio.js';
@@ -75,7 +76,7 @@ $('disconnect').onclick = () => {
 
 // ---------- Navigation ----------
 // Chaque écran ouvert ajoute une entrée d'historique : le bouton Retour d'Android remonte d'un niveau.
-const views = ['home', 'cat', 'prefs', 'edit', 'run', 'hist', 'sess', 'prog'];
+const views = ['home', 'cat', 'prefs', 'edit', 'run', 'hist', 'sess', 'prog', 'ana'];
 let current = 'home', popping = false, homing = false;
 function show(v) {
   views.forEach((x) => { $(x).hidden = x !== v; });
@@ -84,7 +85,7 @@ function show(v) {
 }
 // Où mène « retour » depuis chaque écran. Renvoyer false annule (séance en cours non confirmée).
 const backFns = {
-  cat: () => renderHome(), prefs: () => renderHome(), hist: () => renderHome(), prog: () => renderHome(),
+  cat: () => renderHome(), prefs: () => renderHome(), hist: () => renderHome(), prog: () => renderHome(), ana: () => renderHome(),
   sess: () => openHist(), edit: () => backToList(), run: () => leaveRun(),
 };
 addEventListener('popstate', async () => {
@@ -122,6 +123,7 @@ function renderHome() {
   tile($('tiles-train'), '🎛️', 'Course libre', 'Pilotage manuel', '#94a3b8', () => openRun(null));
   tile($('tiles-more'), '📊', 'Historique', 'Séances et stats', '#4c8dff', () => openHist());
   tile($('tiles-more'), '📈', 'Progression', 'Courbes et records', '#2fd27a', () => openProg());
+  tile($('tiles-more'), '🔬', 'Analyse', 'Cœur, récupération, zones', '#ff5a5f', () => openAna());
   tile($('tiles-more'), '⚙️', 'Réglages', `VMA ${vma} km/h`, '#94a3b8', () => openPrefs());
   mySessions().then((all) => {
     renderToday(all);
@@ -336,7 +338,7 @@ function renderEdit() {
   $('e-inc').textContent = s.incline + ' %';
   $('e-stats').textContent = summary(ed.steps);
 }
-window.addEventListener('resize', () => { if (!$('edit').hidden) renderEdit(); if (!$('run').hidden) drawRun(); if (!$('sess').hidden) drawSession($('chart-sess'), sess.samples); if (!$('prog').hidden) renderProg(); });
+window.addEventListener('resize', () => { if (!$('edit').hidden) renderEdit(); if (!$('run').hidden) drawRun(); if (!$('sess').hidden) drawSession($('chart-sess'), sess.samples); if (!$('prog').hidden) renderProg(); if (!$('ana').hidden) renderAna(); });
 $('edit').addEventListener('click', (e) => {
   const a = e.target.dataset.a; if (!a) return;
   const s = ed.steps[ed.sel], [k, v] = a.split(':');
@@ -654,6 +656,39 @@ function renderProg() {
     row('Meilleure semaine', r.week, r.week && r.week.km.toFixed(1) + ' km')) || '<span>Aucune séance enregistrée.</span>';
 }
 $('s-del').onclick = async () => { if (confirm('Supprimer cette séance de l\'historique ?')) { await delSession(sess.id); history.back(); } };
+
+// ---------- Analyse ----------
+// Périodes de la plus ancienne à la plus récente : une seule teinte, de plus en plus claire (rampe validée).
+const PERIOD_COLORS = ['#44689f', '#6aa0ff', '#c2d8ff'];
+const dot = (c) => `<i class="zdot" style="background:${c}"></i>`;
+const emptyPlot = (svg, text) => { svg.replaceChildren(); svg.setAttribute('viewBox', '0 0 320 60'); svg.insertAdjacentHTML('beforeend', `<text x="160" y="34" text-anchor="middle" fill="#8d96a8" font-size="12">${text}</text>`); };
+async function openAna() { sessions = await mySessions(); show('ana'); renderAna(); }
+function renderAna() {
+  // 1. FC selon la vitesse
+  const hs = hrBySpeed(sessions), order = [2, 1, 0].filter((p) => hs.periods[p].some((v) => v != null)); // ancien → récent
+  $('a-speed-legend').innerHTML = order.map((p) => `<span>${dot(PERIOD_COLORS[2 - p])}${PERIODS[p]}</span>`).join('');
+  if (!hs.bins.length) { emptyPlot($('chart-a-speed'), 'Pas encore assez de données'); $('a-speed-table').innerHTML = '<p class="muted">Il faut au moins 2 minutes à vitesse stable, à plat, avec la ceinture.</p>'; }
+  else {
+    drawMultiLine($('chart-a-speed'), hs.bins.map((b) => b + ' km/h'), order.map((p) => ({ color: PERIOD_COLORS[2 - p], values: hs.periods[p] })),
+      hs.bins.map((b, i) => `${b} km/h : ` + order.slice().reverse().filter((p) => hs.periods[p][i] != null).map((p) => `${hs.periods[p][i]} bpm`).join(' ← ')), { fmt: (v) => Math.round(v) });
+    const [now0, prev] = hs.periods, diff = (i) => (now0[i] != null && prev[i] != null ? (now0[i] - prev[i] > 0 ? '+' : now0[i] - prev[i] < 0 ? '−' : '') + Math.abs(now0[i] - prev[i]) : '–');
+    $('a-speed-table').innerHTML = `<table class="cmp"><tr><th>Vitesse</th><th>4 dern. sem.</th><th>4 sem. avant</th><th>Écart</th></tr>` +
+      hs.bins.map((b, i) => `<tr><td>${b} km/h</td><td>${now0[i] ?? '–'}</td><td>${prev[i] ?? '–'}</td><td>${diff(i)}</td></tr>`).join('') +
+      '</table><p class="muted">En bpm. Un écart négatif est un progrès. Quelques battements d\'écart peuvent venir de la fatigue, de la chaleur ou de l\'heure.</p>';
+  }
+  // 2. Récupération
+  const rs = recoverySeries(sessions), day = (t) => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  drawLine($('chart-a-rec'), rs.map((p) => ({ ...p, tip: `${day(p.t)} : −${p.v} bpm en 1 min (${p.n} effort${p.n > 1 ? 's' : ''})` })), { color: '#ff5a5f', fmt: (v) => Math.round(v) });
+  $('a-rec-info').textContent = rs.length ? `Dernière séance mesurée : −${rs.at(-1).v} bpm en une minute.` : 'Aucune séance de fractionné mesurable pour l\'instant : il faut au moins 3 efforts de 45 secondes ou plus, chacun suivi d\'une minute de récupération.';
+  // 3. Zones par semaine
+  const zw = zonesByWeek(sessions, hrMax), split = intensitySplit(zw);
+  $('a-zones-legend').innerHTML = ZONES.map((z, i) => `<span>${dot(ZONE_COLORS[i])}${z.name} ${z.label}</span>`).join('');
+  if (!split) { emptyPlot($('chart-a-zones'), 'Pas encore de données'); $('a-zones-info').textContent = ''; return; }
+  drawStacked($('chart-a-zones'), zw.map((w) => ({ label: w.label, values: w.zones.map((z) => z / 60),
+    tip: `Sem. du ${w.label} : ` + (w.zones.some((z) => z) ? w.zones.map((z, i) => (z ? `${ZONES[i].name} ${Math.round(z / 60)}′` : '')).filter(Boolean).join(' · ') : 'aucune donnée') })),
+    ZONE_COLORS, { fmt: (v) => Math.round(v) });
+  $('a-zones-info').textContent = `Sur ces 8 semaines : ${split.easy} % facile (Z1-Z2), ${split.moderate} % modéré (Z3), ${split.hard} % dur (Z4-Z5). Repère courant en endurance : environ 80 % de facile. Les zones dépendent de ta FC max (${hrMax} bpm).`;
+}
 
 renderHome(); setStatus();
 fetch('version.json').then((r) => r.json()).then((v) => { $('version').textContent = 'Version ' + v.version; }).catch(() => {});

@@ -20,6 +20,8 @@ Une appli web sans framework ni bundler (modules ES natifs), emballée dans un A
 | `src/plan.js` | Plan guidé (séance du jour) et objectif de course |
 | `src/recorder.js` | Enregistrement d'une séance (une mesure par seconde, un point de courbe toutes les 5 s) |
 | `src/hr.js`, `src/progress.js` | Zones cardiaques, indice cardio, statistiques de progression |
+| `src/analysis.js` | Écran Analyse : FC selon la vitesse par périodes de 4 semaines, récupération cardiaque, zones par semaine |
+| `src/glucose.js` | Mise en forme de la glycémie et de l'IOB reçues d'AAPS |
 | `src/chart.js` | Tous les graphes, en SVG |
 | `src/store.js`, `src/db.js` | Stockage : réglages et séances créées dans localStorage, séances réalisées dans IndexedDB |
 | `android/` | Projet Capacitor (permissions, signature, icônes) |

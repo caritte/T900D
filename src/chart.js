@@ -150,3 +150,43 @@ export function drawLine(svg, pts, { color = C.speed, fmt = (v) => v } = {}) {
   }));
   activate(marks, f, pts, (mk, on) => mk.dot.setAttribute('r', on ? 6 : 4));
 }
+
+// Plusieurs courbes sur un axe X commun de catégories (ex. vitesses). series = [{ color, values: [nombre ou null] }],
+// labels = libellés de l'axe X, tips = texte de lecture par position. Les trous (null) coupent la ligne.
+export function drawMultiLine(svg, labels, series, tips, { fmt = (v) => v } = {}) {
+  const all = series.flatMap((s) => s.values).filter((v) => v != null);
+  const pad = (Math.max(...all) - Math.min(...all)) * 0.15 || 3;
+  const f = frame(svg, Math.min(...all) - pad, Math.max(...all) + pad, fmt);
+  const slot = f.pw / labels.length, x = (i) => f.m.l + slot * (i + 0.5);
+  labels.forEach((l, i) => xLabel(svg, f, x(i), l));
+  const dots = labels.map(() => []);
+  for (const s of series) {
+    let d = '', pen = false;
+    s.values.forEach((v, i) => { if (v == null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${x(i)} ${f.y(v)}`; pen = true; });
+    el('path', { d, fill: 'none', stroke: s.color, 'stroke-width': 2, 'stroke-linejoin': 'round' }, svg);
+    s.values.forEach((v, i) => { if (v != null) dots[i].push(el('circle', { cx: x(i), cy: f.y(v), r: 4, fill: s.color, stroke: SURFACE, 'stroke-width': 2 }, svg)); });
+  }
+  const marks = labels.map((_, i) => ({ dots: dots[i], hit: el('rect', { x: x(i) - slot / 2, y: f.m.t, width: slot, height: f.ph, fill: 'transparent' }, svg) }));
+  activate(marks, f, tips.map((tip) => ({ tip })), (mk, on) => mk.dots.forEach((c) => c.setAttribute('r', on ? 6 : 4)));
+}
+
+// Barres empilées : items = [{ label, values: [...], tip }], une couleur par rang de valeur.
+// Segments séparés par 2 px de fond ; seul le segment du haut est arrondi.
+export function drawStacked(svg, items, colors, { fmt = (v) => v } = {}) {
+  const f = frame(svg, 0, niceMax(Math.max(...items.map((it) => it.values.reduce((a, b) => a + b, 0)))), fmt);
+  const slot = f.pw / items.length, bw = Math.max(4, Math.min(28, slot - 4)), base = f.m.t + f.ph, every = Math.ceil(items.length / 8);
+  const marks = items.map((it, i) => {
+    const cx = f.m.l + slot * (i + 0.5), g = el('g', {}, svg);
+    let acc = 0;
+    const last = it.values.findLastIndex((v) => v > 0);
+    it.values.forEach((v, k) => {
+      if (!(v > 0)) return;
+      const y1 = f.y(acc), y0 = f.y(acc + v); acc += v;
+      const h = Math.max(1, y1 - y0 - (k === last ? 0 : 2)), r = k === last ? Math.min(4, h, bw / 2) : 0, top = y1 - h;
+      el('path', { d: `M${cx - bw / 2} ${y1}V${top + r}q0 ${-r} ${r} ${-r}h${bw - 2 * r}q${r} 0 ${r} ${r}V${y1}z`, fill: colors[k] }, g);
+    });
+    if ((items.length - 1 - i) % every === 0) xLabel(svg, f, cx, it.label);
+    return { g, hit: el('rect', { x: cx - slot / 2, y: f.m.t, width: slot, height: f.ph, fill: 'transparent' }, svg) };
+  });
+  activate(marks, f, items, (mk, on) => mk.g.setAttribute('opacity', on ? 1 : 0.72));
+}

@@ -122,4 +122,25 @@ assert.equal(glucoseView(st0, gt + 10 * 60000).stale, true);
 const mm = glucoseView({ ...st0, glucoseMgdl: 126, units: 'mmol', low: 4, high: 10, deltaMgdl: 9 }, gt);
 assert.deepEqual([mm.bg, mm.unit, mm.delta, mm.state], ['7,0', 'mmol/L', '+0,5', 'in']);
 assert.equal(glucoseView({ iob: 1 }, gt), null); assert.equal(glucoseView(null), null);
+
+// Analyses fines
+const { hrBySpeed, recoveries, recoverySeries, zonesByWeek, intensitySplit } = await import('../src/analysis.js');
+const A0 = new Date(2026, 10, 18, 12).getTime(), DAYMS = 864e5;
+// séance type : 5 min à 8 km/h (FC fc), puis 3 × (1 min à 12 km/h FC fc+30, 2 min à 6 km/h FC fc+5)
+const mk = (ago, fc, incline = 0) => {
+  const sm = []; let tt = 0; const add = (n, sp, h) => { for (let i = 0; i < n; i++) { tt += 5; sm.push([tt, sp, incline, h]); } };
+  add(60, 8, fc); for (let k = 0; k < 3; k++) { add(12, 12, fc + 30); add(24, 6, fc + 5); }
+  return { start: A0 - ago * DAYMS, duration: tt, samples: sm };
+};
+const hb = hrBySpeed([mk(3, 140), mk(10, 142), mk(40, 150), mk(5, 199, 5)], A0); // la séance en pente est ignorée
+assert.deepEqual(hb.bins, [6, 8]);                       // 12 km/h : jamais 90 s stables, donc exclu
+assert.deepEqual(hb.periods.map((p) => p[1]), [141, 150, null]);
+assert.deepEqual(recoveries(mk(0, 140).samples), [25, 25, 25]);   // 170 au pic, 145 une minute après
+assert.deepEqual(recoveries(mk(0, 0).samples.map((s) => [s[0], s[1], 0, 0])), []);
+assert.deepEqual(recoverySeries([mk(3, 140), { start: A0, samples: [] }]).map((p) => [p.v, p.n]), [[25, 3]]);
+assert.deepEqual(recoverySeries([mk(3, 140)], 4), []); // pas assez d'efforts : séance écartée
+const zw = zonesByWeek([mk(1, 140), mk(8, 100)], 190, 3, A0);
+assert.deepEqual(zw.map((w) => w.zones.reduce((a, b) => a + b, 0)), [0, 840, 840]);
+assert.deepEqual(intensitySplit(zw.slice(2)), { easy: 0, moderate: 79, hard: 21 });
+assert.equal(intensitySplit(zw.slice(0, 1)), null);
 console.log('OK');

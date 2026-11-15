@@ -88,6 +88,10 @@ button{white-space:nowrap}
 .zones .fill{height:100%;border-radius:5px;min-width:2px}
 .zdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
 .plot{width:100%;height:180px;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;margin:6px 0}
+.cmp{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px;font-variant-numeric:tabular-nums}
+.cmp th,.cmp td{padding:5px 6px;text-align:right;border-top:1px solid var(--line)}
+.cmp th{color:var(--mut);font-weight:500;font-size:12px}.cmp td:first-child,.cmp th:first-child{text-align:left}
 .records{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:14px}
 .records span:nth-child(odd){color:var(--mut)}.records b{text-align:right;font-variant-numeric:tabular-nums}
 .records small{color:var(--mut);font-weight:400}

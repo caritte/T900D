@@ -2,7 +2,7 @@
 import { cardioIndex } from './hr.js';
 
 const DAY = 864e5;
-const monday = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return d.getTime(); };
+export const monday = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return d.getTime(); };
 
 // Totaux par semaine (lundi → dimanche), de la plus ancienne à la semaine en cours.
 export function weekly(sessions, weeks = 12, now = Date.now()) {

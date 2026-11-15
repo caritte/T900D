@@ -180,6 +180,32 @@
     </section>
   </div>
 </main>
+<main id="ana" class="view" hidden>
+  <div class="head"><button data-back class="ghost sm">‹</button><h2>Analyse</h2></div>
+  <p class="muted">Ces analyses n'utilisent que les séances faites avec la ceinture cardiaque. Il faut plusieurs semaines de séances pour qu'une tendance soit fiable.</p>
+  <div class="grid">
+    <section class="card">
+      <div class="ctl"><b>Fréquence cardiaque selon la vitesse</b></div>
+      <p class="muted">Ta fréquence moyenne à chaque vitesse, à plat et une fois le cœur stabilisé, par périodes de 4 semaines. Si la courbe la plus récente passe sous les autres, ton cœur travaille moins pour le même effort.</p>
+      <div id="a-speed-legend" class="legend"></div>
+      <svg id="chart-a-speed" class="plot"></svg>
+      <div id="a-speed-table"></div>
+    </section>
+    <section class="card">
+      <div class="ctl"><b>Récupération cardiaque</b></div>
+      <p class="muted">De combien de battements ta fréquence baisse dans la minute qui suit un effort intense. Chaque point est une séance de fractionné (au moins 3 efforts suivis d'une minute de récupération), avec la moyenne de ses récupérations. Plus la valeur est haute, mieux tu récupères.</p>
+      <svg id="chart-a-rec" class="plot"></svg>
+      <p id="a-rec-info" class="muted"></p>
+    </section>
+    <section class="card">
+      <div class="ctl"><b>Zones cardiaques par semaine</b></div>
+      <p class="muted">Le temps passé dans chaque zone sur les 8 dernières semaines, en minutes.</p>
+      <div id="a-zones-legend" class="legend"></div>
+      <svg id="chart-a-zones" class="plot"></svg>
+      <p id="a-zones-info" class="muted"></p>
+    </section>
+  </div>
+</main>
 <script type="module" src="src/app.js"></script>
 </body>
 </html>
