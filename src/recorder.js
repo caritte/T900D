@@ -21,6 +21,9 @@ export class Recorder {
     if (Math.floor(this.t / SAMPLE) > this.samples.length) this.samples.push([Math.round(this.t), speed, incline, hr]);
   }
 
+  // Reprise d'une séance interrompue : l'état est un simple objet (JSON).
+  static restore(data) { return Object.assign(new Recorder(data.name, data.start), data); }
+
   summary(completed = true) {
     return {
       id: this.start, start: this.start, name: this.name, completed,

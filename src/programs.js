@@ -71,6 +71,11 @@ export const PROGRAMS = [
   p('fr7', CATS[3], 3, '30 / 30 · 2 × 12 à 105 %', 'Version exigeante, au-dessus de la VMA.',
     `${WU(15)}\nrepeat 2 {\nrepeat 12 {\n0:30 @ 105% / 1 Sprint\n0:30 @ 55% / 0 Récup\n}\n4:00 @ 55% / 0 Récup longue\n}\n${CD(6)}`),
 
+  p('fr8', CATS[3], 2, '10 × 400 m', 'Dix fois 400 mètres à la VMA. Les étapes rapides se terminent à la distance, pas au temps.',
+    `${WU(15)}\nrepeat 10 {\n400m @ 100% / 1 400 m\n1:30 @ 55% / 0 Récup\n}\n${CD(6)}`),
+  p('fr9', CATS[3], 3, '5 × 1000 m', 'Cinq fois 1 kilomètre à allure soutenue.',
+    `${WU(15)}\nrepeat 5 {\n1000m @ 92% / 1 1000 m\n2:30 @ 55% / 0 Récup\n}\n${CD(8)}`),
+
   // --- Côtes : puissance et cardio avec moins de vitesse ---
   p('co1', CATS[4], 1, 'Côtes douces 6 × 1′', 'Montées courtes à 5 %, récupération en marchant.',
     `${WU(10, 0)}\nrepeat 6 {\n1:00 @ 70% / 5 Montée\n2:00 @ 5.5 / 0 Marche\n}\n${CD(5)}`),

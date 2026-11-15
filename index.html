@@ -18,6 +18,7 @@
 </header>
 
 <main id="home" class="view">
+  <section id="resume" class="card today" hidden></section>
   <section id="today" class="card today"></section>
   <div id="week" class="metrics"></div>
   <h3>Entraînements</h3>
@@ -50,11 +51,16 @@
     <section class="card">
       <div class="ctl"><span>Plan guidé</span><select id="plan-level"><option value="0">Aucun</option><option value="1">Débutant</option><option value="2">Intermédiaire</option><option value="3">Confirmé</option></select></div>
       <p class="muted">Le plan propose la « séance du jour » sur l'accueil et avance quand tu la termines en entier.</p>
+      <div class="ctl"><span>Objectif de course</span><select id="goal-km"><option value="0">Aucun</option><option value="5">5 km</option><option value="10">10 km</option><option value="21.1">Semi-marathon</option></select></div>
+      <div class="ctl"><span>Date de la course</span><input type="date" id="goal-date"></div>
+      <p id="goal-info" class="muted"></p>
       <div class="acts"><button id="plan-reset" class="ghost">Recommencer le plan au début</button></div>
     </section>
     <section class="card">
       <p><label><input type="checkbox" id="p-beep"> Bips avant les changements d'étape</label></p>
       <p><label><input type="checkbox" id="p-voice"> Annonces vocales</label></p>
+      <p><label><input type="checkbox" id="p-autobk"> Sauvegarde automatique après chaque séance</label></p>
+      <p id="bk-status" class="muted"></p>
       <div class="acts"><button id="export" class="ghost">Exporter mes données</button><button id="import" class="ghost">Importer</button></div>
       <input id="file" type="file" accept="application/json" hidden>
     </section>
@@ -75,7 +81,7 @@
     <section class="card">
       <div class="ctl"><b id="e-title"></b>
         <span><button data-a="left" class="ghost">←</button><button data-a="right" class="ghost">→</button></span></div>
-      <div class="ctl"><span>Durée <b id="e-dur"></b></span>
+      <div class="ctl"><span><button data-a="mode" class="ghost" id="e-mode" title="Durée ou distance"></button> <b id="e-dur"></b></span>
         <span><button data-a="dur:-60">−1m</button><button data-a="dur:-15">−15s</button><button data-a="dur:15">+15s</button><button data-a="dur:60">+1m</button></span></div>
       <div class="ctl"><span>Vitesse <b id="e-spd" class="sp"></b></span>
         <span><button data-a="spd:-0.5">−</button><button data-a="spd:0.5">+</button></span></div>
@@ -91,7 +97,9 @@
 </main>
 
 <main id="run" class="view" hidden>
-  <div class="head"><button data-back class="ghost sm">‹</button><h2 id="r-title"></h2></div>
+  <div class="head"><button data-back class="ghost sm">‹</button><h2 id="r-title"></h2>
+    <span id="r-int" class="int" title="Intensité de la séance"><button data-i="-0.05">−</button><b id="r-scale">100 %</b><button data-i="0.05">+</button></span>
+    <button id="r-big" class="ghost sm" title="Affichage géant ou détaillé">⛶</button></div>
   <div class="split">
     <div>
       <svg id="chart-run" class="chart tall"></svg>

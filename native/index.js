@@ -55,3 +55,16 @@ export async function shareFile(name, text) {
   const { uri } = await Filesystem.writeFile({ path: name, data: text, directory: Directory.Cache, encoding: Encoding.UTF8 });
   await Share.share({ title: name, files: [uri] });
 }
+
+// Sauvegarde automatique dans Documents/T900D : ce dossier survit à la désinstallation de l'appli.
+// Après une réinstallation, l'ancien fichier n'appartient plus à l'appli et ne peut plus être écrasé :
+// on écrit alors un fichier daté. Renvoie le chemin lisible du fichier écrit.
+export async function saveBackup(name, text) {
+  const write = (path) => Filesystem.writeFile({ path: `T900D/${path}`, data: text, directory: Directory.Documents, encoding: Encoding.UTF8, recursive: true });
+  try { await write(name); return `Documents/T900D/${name}`; } catch { /* permission ou fichier d'une ancienne installation */ }
+  await Filesystem.requestPermissions().catch(() => {});
+  try { await write(name); return `Documents/T900D/${name}`; } catch { /* on tente un nouveau nom */ }
+  const alt = name.replace('.json', `-${new Date().toISOString().slice(0, 10)}.json`);
+  await write(alt);
+  return `Documents/T900D/${alt}`;
+}

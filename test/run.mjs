@@ -57,7 +57,8 @@ assert.deepEqual([100, 115, 135, 155, 175, 0].map((h) => zoneOf(h, 190)), [0, 1,
 assert.deepEqual(zoneTimes([[5, 8, 0, 120], [10, 8, 0, 140], [15, 8, 0, 0]], 190), [0, 5, 5, 0, 0]);
 assert.equal(cardioIndex(Array.from({ length: 12 }, (_, i) => [i * 5, 10, 0, 150])), 6.67);
 assert.equal(cardioIndex([[5, 10, 0, 150]]), null);
-const { PLANS, planProgram, advance, advice } = await import('../src/plan.js');
+const { PLANS, planToday, advance, advice, goalTarget } = await import('../src/plan.js');
+const planProgram = (s, now) => planToday(s, now).program;
 for (const pl of Object.values(PLANS)) for (const id of [...pl.intro, ...pl.loop]) assert.ok(PROGRAMS.some((p) => p.id === id), id);
 let st = { level: 1, idx: 0 };
 assert.equal(planProgram(st).id, 'rf1');
@@ -76,4 +77,38 @@ const now = new Date(2026, 10, 18, 12).getTime(); // mercredi
 const wk = weekly([{ start: now - 864e5, distance: 5000, duration: 1800 }, { start: now - 8 * 864e5, distance: 3000, duration: 1200 }], 4, now);
 assert.deepEqual(wk.map((w) => +w.km.toFixed(1)), [0, 0, 3, 5]);
 assert.equal(records([{ start: now, distance: 5000, duration: 1800, avgSpeed: 10, maxSpeed: 12, ascent: 5 }]).week.km, 5);
+
+// Étapes en distance : fin à la distance réellement parcourue
+const { scaleSteps } = await import('../src/workout.js');
+const ds = parseWorkout('400m @ 12 / 1 Vite\n1km @ 10\n0:30 @ 6');
+assert.deepEqual([ds[0].distance, ds[0].duration, ds[1].distance, ds[1].duration, ds[2].distance], [400, 120, 1000, 360, undefined]);
+assert.deepEqual(scaleSteps(ds, 0.9).map((s) => [s.speed, s.duration]), [[11, 131], [9, 400], [5.5, 30]]);
+{
+  let t = 0, done = false, sp = 6; const ch = [];
+  const r = new WorkoutRunner(parseWorkout('100m @ 12\n0:10 @ 6'), { setSpeed: (v) => ch.push([t / 1000, v]), setIncline() {} }, { now: () => t, speedNow: () => sp, onDone: () => { done = true; } });
+  r.start();
+  for (let i = 0; i < 400 && !done; i++) { t += 500; r.tick(); if (i === 10) assert.ok(r.snapshot().remainingDist < 100 && r.snapshot().pos > 0); }
+  // à 6 km/h réels (1,667 m/s), 100 m prennent 60 s, et non les 30 s prévues à 12 km/h
+  assert.deepEqual(ch, [[0, 12], [60.5, 6]]); assert.ok(done); // 60,5 : pas de 0,5 s du test
+  // reprise : état restauré, aucune commande envoyée
+  const r2 = new WorkoutRunner(parseWorkout('100m @ 12\n0:10 @ 6'), { setSpeed() { throw new Error('commande inattendue'); }, setIncline() {} }, { now: () => t });
+  r2.restore({ idx: 1, stepElapsed: 4, stepDist: 0, total: 64 }); r2.start(); r2.pause();
+  assert.equal(Math.round(r2.snapshot().remaining), 6);
+}
+const rec2 = Recorder.restore(JSON.parse(JSON.stringify(rec)));
+rec2.tick({ speed: 12, incline: 0 }); assert.equal(Math.round(rec2.t), 61); assert.equal(rec2.summary().samples.length, 12);
+
+// Objectif de course
+const D = 864e5, c0 = 1e12, goal = { km: 10, date: c0 + 56 * D, created: c0 };
+const gs = (idx, now) => planToday({ level: 2, idx, goal }, now);
+assert.deepEqual([0, 1, 2].map((i) => gs(i, c0 + D).program.id), ['en2', 'fr3', 'en4']);            // phase de base
+assert.deepEqual([0, 1, 2].map((i) => gs(i, c0 + 30 * D).program.id), ['ca3', 'en2', 'goal-10-2']); // phase spécifique
+assert.match(gs(0, c0 + 30 * D).progress, /J-26 · phase spécifique/);
+const pace = gs(2, c0 + 30 * D).program, pst = parseWorkout(pace.text, 12);
+assert.equal(pst.filter((s) => s.distance === 2000).length, 3); assert.equal(pst[1].speed, 10.5);
+assert.equal(gs(0, c0 + 51 * D).program.id, 'en1');            // affûtage
+assert.equal(gs(0, c0 + 55.5 * D).program, null);              // veille
+assert.equal(gs(0, c0 + 58 * D).program.id, 'en2');            // objectif passé : retour au plan normal
+assert.equal(advance({ level: 2, idx: 2, goal }, 'goal-10-2', c0 + 30 * D).idx, 3);
+assert.deepEqual(goalTarget(goal, 12), { kmh: 10.6, seconds: 3409 });
 console.log('OK');

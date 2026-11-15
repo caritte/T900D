@@ -103,6 +103,20 @@ button{white-space:nowrap}
 .now b{font-size:38px;font-variant-numeric:tabular-nums;line-height:1}
 .now .next{text-align:right}.now .next span{font-weight:600;white-space:nowrap}
 .big-btns button{flex:1;min-height:58px;font-size:18px}
+.int{display:flex;align-items:center;gap:4px;white-space:nowrap}.int button{min-height:38px;padding:4px 12px}.int b{min-width:52px;text-align:center;font-variant-numeric:tabular-nums}
+#e-mode{min-height:36px;padding:4px 10px;margin:0 4px 0 0}
+input[type=date]{flex:0 1 170px;width:auto}
+/* Affichage géant : on ne garde que le compte à rebours, la vitesse, la pente, la FC et les boutons */
+#run.big #chart-run,#run.big #adj,#run.big #r-info,#run.big .metrics div:nth-child(n+4){display:none}
+#run.big.free .metrics div:nth-child(5){display:block}
+#run.big .now{margin:0 0 10px;padding:14px 16px;flex-direction:column;align-items:flex-start}
+#run.big .now b{font-size:clamp(64px,min(25vw,22vh),220px);white-space:nowrap}
+#run.big .now small{font-size:17px}
+#run.big .now .next{text-align:left}
+#run.big .now .next span{font-size:clamp(20px,min(6vw,5vh),40px)}
+#run.big .metrics div{min-width:0}
+#run.big .metrics b{font-size:clamp(36px,min(12vw,13vh),130px)}
+#r-big.on{background:var(--in);border-color:var(--in)}
 .adj{display:flex;justify-content:space-between;gap:8px;margin-top:10px;color:var(--mut);font-size:14px}
 .adj button{padding:8px 14px;margin-left:4px}
 pre{max-height:14em;overflow:auto;font-size:11px;color:var(--mut);white-space:pre-wrap}
@@ -116,6 +130,10 @@ summary{cursor:pointer}
   .metrics.six{grid-template-columns:repeat(6,1fr)}
   #home .metrics b{font-size:22px}
   .chart.tall{height:max(130px,calc(100dvh - 244px - var(--st) - var(--sb)))}
+  #run.big .now{justify-content:center;min-height:calc(100dvh - 170px - var(--st) - var(--sb))}
+  #run.big .now{margin-bottom:0;padding:8px 16px}
+  #run.big .now b{font-size:clamp(64px,min(17vw,27vh),260px)}
+  #run.big .metrics b{font-size:clamp(36px,min(6vw,12vh),110px)}
   .chart.big{height:max(170px,calc(100dvh - 190px - var(--st) - var(--sb)))}
   .head{margin-bottom:6px}
   #run .metrics{margin-top:0}#run .metrics b{font-size:clamp(24px,7.5vh,44px)}

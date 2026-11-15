@@ -1,11 +1,11 @@
 import { Treadmill } from './ftms.js';
 import { DemoTreadmill } from './demo.js';
-import { WorkoutRunner, stats, parseWorkout } from './workout.js';
+import { WorkoutRunner, stats, parseWorkout, scaleSteps, distDuration } from './workout.js';
 import { PROGRAMS, CATS, LEVELS, CAT_INFO } from './programs.js';
 import { drawChart, drawSession, drawBars, drawLine, LIMITS } from './chart.js';
 import { loadWorkouts, saveWorkouts, uid, currentUser, loadVma, saveVma, loadFavs, saveFavs, pref, setPref, LEGACY_USER } from './store.js';
 import { ZONES, ZONE_COLORS, zoneOf, zoneTimes } from './hr.js';
-import { planProgram, planProgress, advance, advice } from './plan.js';
+import { planToday, advance, advice, goalActive, goalTarget, GOALS } from './plan.js';
 import { weekly, cardioSeries, records } from './progress.js';
 import { Recorder } from './recorder.js';
 import { putSession, allSessions, delSession } from './db.js';
@@ -111,7 +111,7 @@ function tile(parent, icon, name, sub, color, fn) {
   b.onclick = fn; parent.appendChild(b);
 }
 function renderHome() {
-  cat = null; show('home');
+  cat = null; show('home'); renderResume();
   $('tiles-train').replaceChildren(); $('tiles-more').replaceChildren();
   for (const c of CATS) {
     const n = PROGRAMS.filter((p) => p.cat === c).length;
@@ -137,13 +137,38 @@ function renderToday(all) {
       [1, 2, 3].map((l) => `<button class="ghost" data-l="${l}">${LEVELS[l]}</button>`).join('') + '</div>';
     return;
   }
-  const p = planProgram(plan), note = advice(all, p);
+  const { program: p, progress, rest } = planToday(plan);
+  const g = goalActive(plan) ? goalTarget(plan.goal, vma) : null;
+  const target = g ? `<div class="muted">Allure visée ≈ ${fr(g.kmh)} km/h (${fmt(3600 / g.kmh)} /km) · temps visé ≈ ${fmt(g.seconds)}</div>` : '';
+  if (!p) { // veille ou jour de course
+    todayW = null;
+    box.innerHTML = `<h3>Séance du jour</h3><b>${progress}</b><div class="note">${rest}</div>${target}`;
+    return;
+  }
+  const note = advice(all, p);
   todayW = { ...p, steps: parseWorkout(p.text, vma) };
   box.innerHTML = `<div class="top"><h3>Séance du jour</h3><span class="badge l${p.level}">${LEVELS[p.level]}</span></div>
-    <b>${CAT_INFO[p.cat].icon} ${esc(p.name)}</b><div class="muted">${planProgress(plan)} · ${summary(todayW.steps)}</div>
+    <b>${CAT_INFO[p.cat].icon} ${esc(p.name)}</b><div class="muted">${progress} · ${summary(todayW.steps)}</div>${target}
     ${note ? `<div class="note">⚠ ${note}</div>` : ''}
     <div class="acts"><button class="primary" data-a="run">▶ Lancer</button><button class="ghost" data-a="skip">Passer</button></div>`;
 }
+// Séance interrompue (appli fermée en cours de route) : proposée à la reprise pendant 12 heures.
+function renderResume() {
+  const r = pref('resume', null), box = $('resume');
+  box.hidden = !(r && Date.now() - r.at < 12 * 36e5);
+  if (box.hidden) return;
+  box.innerHTML = `<h3>Séance interrompue</h3><b>${esc(r.rec.name)}</b>
+    <div class="muted">${fmt(r.rec.t)} effectuées · ${(r.rec.dist / 1000).toFixed(2)} km · le ${new Date(r.at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</div>
+    <div class="acts"><button class="primary" data-a="go">Reprendre</button><button class="ghost" data-a="save">Enregistrer telle quelle</button><button class="ghost" data-a="drop">Abandonner</button></div>`;
+}
+$('resume').onclick = async (e) => {
+  const a = e.target.dataset.a, r = pref('resume', null);
+  if (!a || !r) return;
+  if (a === 'go') return openRun(r.w, r);
+  if (a === 'drop' && !confirm('Abandonner cette séance sans l\'enregistrer ?')) return;
+  if (a === 'save') { await putSession({ ...Recorder.restore(r.rec).summary(false), user: currentUser(), programId: r.w?.cat ? r.w.id : undefined }); autoBackup(); }
+  setPref('resume', null); renderHome();
+};
 $('today').onclick = (e) => {
   const d = e.target.dataset;
   if (d.l) { setPlan({ level: +d.l, idx: 0 }); renderHome(); }
@@ -187,7 +212,7 @@ function renderCat() {
     if (!favProgs.length && !workouts.length) $('c-list').innerHTML = '<p class="muted">Rien ici pour l\'instant. Touche ☆ sur un programme pour l\'ajouter en favori, ou crée une séance avec « + Nouvelle ».</p>';
     return;
   }
-  const list = PROGRAMS.filter((p) => p.cat === cat), levels = [...new Set(list.map((p) => p.level))];
+  const list = PROGRAMS.filter((p) => p.cat === cat).sort((a, b) => a.level - b.level), levels = [...new Set(list.map((p) => p.level))];
   if (levels.length > 1) for (const l of [0, ...levels]) {
     const b = document.createElement('button');
     b.textContent = l ? LEVELS[l] : 'Tous'; b.classList.toggle('on', l === level);
@@ -202,6 +227,18 @@ function openPrefs() {
   show('prefs');
   $('vma').textContent = vma + ' km/h'; $('hrmax').textContent = hrMax + ' bpm';
   $('hralert').value = hrAlert; $('plan-level').value = plan?.level || 0;
+  const goal = goalActive(plan) ? plan.goal : null, g = goal && goalTarget(goal, vma);
+  $('goal-km').value = goal?.km || 0;
+  $('goal-date').value = goal ? new Date(goal.date).toLocaleDateString('sv') : ''; // format AAAA-MM-JJ
+  $('goal-date').min = new Date(Date.now() + 9 * 864e5).toLocaleDateString('sv');
+  $('goal-info').textContent = g ? `Avec ta VMA de ${fr(vma)} km/h : allure visée ≈ ${fr(g.kmh)} km/h (${fmt(3600 / g.kmh)} /km), temps visé ≈ ${fmt(g.seconds)}. Le plan s'organise jusqu'à la course : base, phase spécifique, puis une semaine d'affûtage.`
+    : 'Choisis une distance et une date (au moins 9 jours à l\'avance) : le plan guidé s\'organise autour.';
+  const bk = pref('backup', null);
+  $('p-autobk').checked = autoBk; $('p-autobk').disabled = !native;
+  $('bk-status').textContent = !native ? 'Disponible uniquement dans l\'appli Android.'
+    : !bk ? 'Le fichier sera écrit dans Documents/T900D après la prochaine séance. Ce dossier est conservé si l\'appli est désinstallée.'
+    : bk.error ? `Dernière tentative échouée le ${new Date(bk.at).toLocaleString('fr-FR')} : ${bk.error}`
+    : `Dernière sauvegarde le ${new Date(bk.at).toLocaleString('fr-FR')} dans ${bk.path}`;
   const lo = (i) => Math.round(ZONES[i].from * hrMax);
   const range = (i) => (i === 0 ? `< ${lo(1)}` : i === 4 ? `${lo(4)} et +` : `${lo(i)}–${lo(i + 1) - 1}`);
   $('zones-ref').innerHTML = ZONES.map((z, i) =>
@@ -220,11 +257,28 @@ $('prefs').addEventListener('click', (e) => {
   if (v || h) openPrefs();
 });
 $('hralert').onchange = (e) => { hrAlert = +e.target.value; setPref('hralert', hrAlert); };
-$('plan-level').onchange = (e) => { const l = +e.target.value; setPlan(l ? { level: l, idx: plan?.level === l ? plan.idx : 0 } : null); };
+$('plan-level').onchange = (e) => { const l = +e.target.value; setPlan(l ? { ...plan, level: l, idx: plan?.level === l ? plan.idx : 0 } : null); openPrefs(); };
+function setGoal() {
+  const km = +$('goal-km').value, date = Date.parse($('goal-date').value + 'T09:00');
+  if (km && date > Date.now() + 8 * 864e5) setPlan({ level: plan?.level || 2, idx: 0, goal: { km, date, created: Date.now() } });
+  else if (km) { $('goal-info').textContent = 'Indique aussi la date de la course, au moins 9 jours à l\'avance.'; return; } // saisie incomplète : on garde le formulaire
+  else if (plan?.goal) setPlan({ level: plan.level, idx: 0 });
+  openPrefs();
+}
+$('goal-km').onchange = $('goal-date').onchange = setGoal;
+let autoBk = localStorage.autobk !== '0';
+$('p-autobk').onchange = (e) => { autoBk = e.target.checked; localStorage.autobk = autoBk ? '1' : '0'; };
+const backupJson = async () => JSON.stringify({ workouts, vma, favs, hrMax, hrAlert, plan, vmalog: pref('vmalog', []), sessions: await mySessions() });
+// Écrit la sauvegarde dans Documents/T900D après chaque séance (appli Android uniquement).
+async function autoBackup() {
+  if (!native || !autoBk) return;
+  try { setPref('backup', { at: Date.now(), path: await native.saveBackup('t900d-sauvegarde.json', await backupJson()) }); }
+  catch (e) { setPref('backup', { at: Date.now(), error: e.message }); }
+}
 $('plan-reset').onclick = () => { if (plan && confirm('Recommencer le plan au début ?')) setPlan({ ...plan, idx: 0 }); };
 $('new').onclick = () => openEdit(null);
 $('export').onclick = async () => {
-  const json = JSON.stringify({ workouts, vma, favs, hrMax, hrAlert, plan, vmalog: pref('vmalog', []), sessions: await mySessions() });
+  const json = await backupJson();
   if (native) return native.shareFile('t900d-sauvegarde.json', json).catch((e) => alert('Export impossible : ' + e.message));
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
@@ -259,11 +313,14 @@ function renderEdit() {
   drawChart($('chart-edit'), ed.steps, {
     selected: ed.sel, editable: true,
     onSelect: (i) => { ed.sel = i; renderEdit(); },
-    onChange: (i, p) => { Object.assign(ed.steps[i], p); renderEdit(); },
+    onChange: (i, p) => { const st = Object.assign(ed.steps[i], p); if (st.distance) st.duration = distDuration(st); renderEdit(); },
   });
   const s = ed.steps[ed.sel];
   $('e-title').textContent = `Étape ${ed.sel + 1}/${ed.steps.length}`;
-  $('e-dur').textContent = fmt(s.duration);
+  $('e-mode').textContent = s.distance ? 'Distance ⇄' : 'Durée ⇄';
+  $('e-dur').textContent = s.distance ? `${s.distance} m (≈ ${fmt(s.duration)})` : fmt(s.duration);
+  for (const [a, t, d] of [['dur:-60', '−1m', '−500m'], ['dur:-15', '−15s', '−100m'], ['dur:15', '+15s', '+100m'], ['dur:60', '+1m', '+500m']])
+    document.querySelector(`[data-a="${a}"]`).textContent = s.distance ? d : t;
   $('e-spd').textContent = s.speed + ' km/h';
   $('e-inc').textContent = s.incline + ' %';
   $('e-stats').textContent = summary(ed.steps);
@@ -272,7 +329,9 @@ window.addEventListener('resize', () => { if (!$('edit').hidden) renderEdit(); i
 $('edit').addEventListener('click', (e) => {
   const a = e.target.dataset.a; if (!a) return;
   const s = ed.steps[ed.sel], [k, v] = a.split(':');
-  if (k === 'dur') s.duration = Math.max(10, s.duration + +v);
+  if (k === 'dur' && s.distance) s.distance = Math.max(50, s.distance + Math.sign(v) * (Math.abs(v) === 60 ? 500 : 100));
+  else if (k === 'dur') s.duration = Math.max(10, s.duration + +v);
+  else if (k === 'mode') { if (s.distance) delete s.distance; else s.distance = Math.max(50, Math.round(s.speed / 3.6 * s.duration / 50) * 50); }
   else if (k === 'spd') s.speed = clamp(+(s.speed + +v).toFixed(1), LIMITS.speed.min, LIMITS.speed.max);
   else if (k === 'inc') s.incline = clamp(s.incline + +v, LIMITS.incline.min, LIMITS.incline.max);
   else if (k === 'add') { ed.steps.splice(ed.sel + 1, 0, { ...s, label: '' }); ed.sel++; }
@@ -288,6 +347,7 @@ $('edit').addEventListener('click', (e) => {
       ed.sel += n * times;
     }
   }
+  for (const st of ed.steps) if (st.distance) st.duration = distDuration(st);
   renderEdit();
 });
 $('e-save').onclick = () => {
@@ -299,7 +359,8 @@ $('e-save').onclick = () => {
 };
 
 // ---------- Course ----------
-// run.w = séance programmée, ou null en course libre. run.state : idle | running | paused.
+// run.w = séance programmée, ou null en course libre. run.steps = ses étapes à l'intensité choisie (run.scale).
+// run.state : idle | running | paused.
 let run;
 const prefs = { beep: localStorage.beep !== '0', voice: localStorage.voice !== '0' };
 for (const k of ['beep', 'voice']) {
@@ -310,6 +371,7 @@ const bip = (f, ms) => prefs.beep && beep(f, ms);
 function speak(t) { if (prefs.voice) (native?.speak ?? say)(t); }
 const fr = (n) => String(n).replace('.', ',');
 const spoken = (s) => `${fr(s.speed)} kilomètres heure, pente ${fr(s.incline)} pour cent`;
+const spokenLen = (st) => (st.distance ? `${st.distance} mètres` : spokenDur(st.duration));
 const spokenDur = (d) => [d >= 60 && `${Math.floor(d / 60)} minute${d >= 120 ? 's' : ''}`, d % 60 && `${d % 60} secondes`].filter(Boolean).join(' ');
 
 const setBtns = (state) => {
@@ -322,7 +384,7 @@ const setBtns = (state) => {
 };
 function drawRun() {
   if (!run) return;
-  if (run.w) drawChart($('chart-run'), run.w.steps, { cursor: run.snap?.total ?? null, selected: run.snap?.idx ?? -1 });
+  if (run.w) drawChart($('chart-run'), run.steps, { cursor: run.snap?.pos ?? null, selected: run.snap?.idx ?? -1 });
   else drawSession($('chart-run'), run.rec?.samples ?? []);
 }
 function showRec() {
@@ -331,13 +393,52 @@ function showRec() {
   $('m-time').textContent = r ? fmt(r.t) : '-';
   $('m-kcal').textContent = r ? r.kcal : '-';
 }
-function openRun(w) {
-  run = { w, runner: null, snap: null, rec: null, cue: {} };
+const makeRunner = () => new WorkoutRunner(run.steps, tm ?? { setSpeed() {}, setIncline() {} }, {
+  onTick, speedNow: () => live.speed ?? null,
+  onDone: () => { tm.stop(); speak('Séance terminée, bravo'); finishRun(true); },
+});
+// saved : état d'une séance interrompue à reprendre (voir saveResume).
+function openRun(w, saved) {
+  run = { w, scale: 1, steps: w?.steps, runner: null, snap: null, rec: null, cue: {} };
   $('r-title').textContent = w?.name ?? 'Course libre';
-  $('r-info').textContent = (w ? summary(w.steps) + ' · ' : '') + 'Appuie sur Start du tapis ou sur Démarrer.';
-  setBtns('idle'); $('r-now').hidden = true; show('run'); drawRun(); showRec();
+  $('r-int').hidden = !w; $('run').classList.toggle('free', !w);
+  setBtns('idle'); $('r-now').hidden = true; show('run');
+  setScale(saved?.scale ?? 1);
+  if (saved) {
+    run.rec = Recorder.restore(saved.rec);
+    if (w && saved.runner?.idx >= 0) {
+      run.runner = makeRunner(); run.runner.restore(saved.runner);
+      run.cue = { idx: saved.runner.idx, sec: null }; // pas d'annonce à l'ouverture
+      onTick(run.runner.snapshot());
+    }
+    setBtns('paused');
+    $('r-info').textContent = 'Séance reprise : appuie sur Start du tapis ou sur Reprendre.';
+  }
+  drawRun(); showRec();
   unlock(); // le clic qui ouvre cet écran autorise le son, même si le départ vient du tapis
-  ensureConnected(true).then((ok) => ok && keepAwake());
+  ensureConnected(true).then((ok) => { if (ok) { keepAwake(); if (run?.runner) run.runner.controller = tm; } });
+}
+// Intensité : décale toutes les vitesses de la séance (80 à 120 %), y compris en cours de route.
+function setScale(k) {
+  if (!run.w) return;
+  run.scale = clamp(Math.round(k * 20) / 20, 0.8, 1.2);
+  run.steps = scaleSteps(run.w.steps, run.scale);
+  $('r-scale').textContent = Math.round(run.scale * 100) + ' %';
+  if (run.runner) {
+    run.runner.steps = run.steps;
+    if (run.state === 'running' && run.runner.step) tm.setSpeed(run.runner.step.speed);
+    onTick(run.runner.snapshot());
+  } else $('r-info').textContent = summary(run.steps) + ' · Appuie sur Start du tapis ou sur Démarrer.';
+  drawRun();
+}
+$('r-int').onclick = (e) => { const d = e.target.dataset.i; if (d) setScale(run.scale + +d); };
+// Affichage géant ou détaillé : le choix est mémorisé.
+const setBig = (on) => { $('run').classList.toggle('big', on); $('r-big').classList.toggle('on', on); localStorage.big = on ? '1' : '0'; drawRun(); };
+$('r-big').onclick = () => setBig(!$('run').classList.contains('big'));
+setBig(localStorage.big === '1');
+// Mémorise la séance en cours toutes les 5 s, pour la reprendre si l'appli est fermée.
+function saveResume() {
+  if (run?.rec) setPref('resume', { w: run.w, scale: run.scale, runner: run.runner?.state(), rec: { ...run.rec }, at: Date.now() });
 }
 // Départ et pause déclenchés depuis la console du tapis (écran Course ouvert uniquement).
 const armed = () => run && !$('run').hidden;
@@ -348,6 +449,7 @@ setInterval(() => {
   if (run?.state !== 'running' || !run.rec) return;
   run.rec.tick(live); showRec();
   if (!run.w) drawRun();
+  if (Math.round(run.rec.t) % 5 === 0) saveResume();
   // Alerte FC : au-dessus de la limite pendant 15 s, rappel au plus une fois par minute.
   const lim = hrAlert && ZONES[hrAlert].from * hrMax;
   if (lim && live.hr >= lim) {
@@ -361,7 +463,7 @@ function onTick(s) {
   if (!s.step) return;
   if (run.cue.idx !== s.idx) { // changement d'étape
     if (run.cue.idx != null) bip(1320, 400);
-    speak(`${s.step.label ? s.step.label + '. ' : ''}${spoken(s.step)}, pendant ${spokenDur(s.step.duration)}`);
+    speak(`${s.step.label ? s.step.label + '. ' : ''}${spoken(s.step)}, pendant ${spokenLen(s.step)}`);
     run.cue = { idx: s.idx, sec: null };
   }
   const sec = Math.ceil(s.remaining);
@@ -371,8 +473,8 @@ function onTick(s) {
     if (sec === 10 && s.step.duration >= 20) speak(s.next ? `Dans 10 secondes : ${spoken(s.next)}` : 'Fin de séance dans 10 secondes');
   }
   $('r-now').hidden = false; $('r-info').textContent = '';
-  $('r-step').textContent = `Étape ${s.idx + 1}/${run.w.steps.length}${s.step.label ? ' · ' + s.step.label : ''} · ${s.step.speed} km/h · ${s.step.incline} %`;
-  $('r-remain').textContent = fmt(Math.ceil(s.remaining));
+  $('r-step').textContent = `Étape ${s.idx + 1}/${run.steps.length}${s.step.label ? ' · ' + s.step.label : ''} · ${s.step.speed} km/h · ${s.step.incline} %`;
+  $('r-remain').textContent = s.remainingDist != null ? `${Math.ceil(s.remainingDist / 10) * 10} m` : fmt(Math.ceil(s.remaining));
   $('r-next').textContent = s.next ? `${s.next.speed} km/h · ${s.next.incline} %` : 'Fin de séance';
 }
 // Après une reconnexion : si le tapis tourne encore on renvoie les consignes, sinon on met en pause.
@@ -385,12 +487,13 @@ function resync() {
   } else { run.runner?.pause(); setBtns('paused'); speak('Tapis à l\'arrêt, séance en pause'); }
 }
 async function finishRun(completed) {
-  const rec = run.rec, w = run.w, programId = w?.cat ? w.id : undefined; // programme intégré uniquement
+  const rec = run.rec, w = run.w, steps = run.steps, programId = w?.cat ? w.id : undefined; // programme intégré uniquement
+  setPref('resume', null);
   run.runner?.pause(); run.runner = null; run.snap = null; run.rec = null; run.cue = {};
   allowSleep(); setBtns('idle'); $('r-now').hidden = true;
-  if (rec && rec.t > 10) await putSession({ ...rec.summary(completed), user: currentUser(), programId });
+  if (rec && rec.t > 10) { await putSession({ ...rec.summary(completed), user: currentUser(), programId }); autoBackup(); }
   // Le plan n'avance que si la séance a vraiment été faite (pas en sautant les étapes).
-  if (completed && programId && plan && rec.t >= 0.8 * stats(w.steps).duration) setPlan(advance(plan, programId));
+  if (completed && programId && plan && rec.t >= 0.8 * stats(steps).duration) setPlan(advance(plan, programId));
   drawRun();
   $('r-info').textContent = rec && rec.t > 10
     ? `${completed ? 'Séance terminée 🎉' : 'Séance arrêtée'} · ${fmt(rec.t)} · ${(rec.dist / 1000).toFixed(2)} km — enregistrée dans l'historique`
@@ -406,11 +509,10 @@ async function startRun(fromApp) {
     bip(660, 120);
     if (run.state === 'idle') {
       run.rec = new Recorder(run.w?.name ?? 'Course libre');
-      if (run.w) run.runner = new WorkoutRunner(run.w.steps, tm, {
-        onTick, onDone: () => { tm.stop(); speak('Séance terminée, bravo'); finishRun(true); },
-      });
+      if (run.w) run.runner = makeRunner();
       else speak('C\'est parti');
     }
+    if (run.runner) run.runner.controller = tm; // une séance reprise a pu être préparée avant la connexion
     const resumed = run.state === 'paused', st = run.runner?.step;
     if (fromApp) await tm.start();
     keepAwake(); setBtns('running'); run.runner?.start();
