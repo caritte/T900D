@@ -58,16 +58,16 @@ Depuis la v4, l'écran de course peut afficher la glycémie et l'insuline active
 
 ## Versions et publication
 
-- La version courante et les versions précédentes sont dans **`version.json`** (`version`, et `previous` : nom + commit de chaque ancienne version).
+- `version.json` contient la version courante (`version`), les versions à reconstruire (`previous` : nom + commit) et les versions figées (`archived` : noms des fichiers déjà publiés à conserver).
 - Chaque push sur la branche déclenche `.github/workflows/apk.yml`, qui construit la version courante **et reconstruit chaque version précédente depuis son commit**, puis publie `t900d-<version>.apk` dans la release `apk`. Toutes reçoivent le même `versionCode` (numéro de build) : Android refuse d'installer un numéro plus petit, et c'est ce qui permet de revenir à une ancienne version sans désinstaller.
-- Les fichiers absents de `version.json` sont supprimés de la release. L'utilisateur veut que **toutes les versions restent disponibles** : ne retire rien de `previous` sans qu'il le demande.
+- Depuis la v4, l'utilisateur veut que **seule la version courante soit reconstruite** : `previous` reste vide, et les anciennes versions sont dans `archived`. Leurs fichiers restent téléchargeables mais gardent leur ancien numéro de build : y revenir depuis une version plus récente impose de désinstaller. Les fichiers absents de `version.json` sont supprimés de la release : ne retire rien de `archived` sans qu'il le demande.
 - La publication passe par `gh release upload`. Une action tierce (`softprops/action-gh-release`) échouait par intermittence sur la mise à jour du titre et bloquait l'envoi ; ne pas y revenir.
 - La clé de signature `android/app/t900d.keystore` est **versionnée dans un dépôt public**, pour que chaque build soit signé à l'identique. L'utilisateur est informé du risque et n'a pas demandé à la déplacer. La changer imposerait une désinstallation sur chaque téléphone.
 - `docs/**`, `README.md` et `CLAUDE.md` ne déclenchent pas de build.
 
 ### Créer une nouvelle version
 
-1. Dans `version.json`, ajouter la version actuelle en tête de `previous` avec le commit courant (`git rev-parse HEAD`), puis passer `version` à la suivante.
+1. Dans `version.json`, ajouter le nom de la version actuelle à `archived`, puis passer `version` à la suivante. (Pour pouvoir revenir à l'ancienne version sans désinstaller, la mettre plutôt dans `previous` avec son commit : elle sera alors reconstruite à chaque build.)
 2. Développer, tester, pousser.
 3. Vérifier le build avec les outils GitHub Actions, puis donner le lien `…/releases/latest/download/t900d-<version>.apk`.
 4. Mettre à jour la notice si l'utilisateur la demande.

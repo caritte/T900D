@@ -1,7 +1,8 @@
 # Construit les APK Android (Capacitor) et les publie dans la release « apk » :
 #   t900d-<version>.apk   dernière version (nom lu dans version.json, ex. v3)
-#   t900d-<nom>.apk       versions précédentes listées dans version.json, chacune reconstruite depuis son commit
-# Toutes portent le même versionCode (numéro de build) : on passe de l'une à l'autre sans désinstaller.
+#   t900d-<nom>.apk       versions de « previous » dans version.json, chacune reconstruite depuis son commit
+#                         avec le même versionCode : on passe de l'une à l'autre sans désinstaller
+#   versions « archived » : fichiers déjà publiés, conservés tels quels et jamais reconstruits
 # Téléchargement : …/releases/latest/download/t900d-v3.apk
 name: APK Android
 on:
@@ -24,6 +25,7 @@ jobs:
     outputs:
       v: ${{ steps.ver.outputs.v }}
       prev: ${{ steps.ver.outputs.prev }}
+      arch: ${{ steps.ver.outputs.arch }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -34,6 +36,7 @@ jobs:
         run: |
           echo "v=$(node -p "require('./version.json').version")" >> "$GITHUB_OUTPUT"
           echo "prev=$(node -p "JSON.stringify(require('./version.json').previous)")" >> "$GITHUB_OUTPUT"
+          echo "arch=$(node -p "JSON.stringify(require('./version.json').archived || [])")" >> "$GITHUB_OUTPUT"
       - run: npm ci
       - run: npm test
       - run: npm run sync
@@ -54,6 +57,7 @@ jobs:
 
   precedentes:
     needs: apk
+    if: needs.apk.outputs.prev != '[]'
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 1
@@ -77,14 +81,16 @@ jobs:
 
   menage:
     needs: [apk, precedentes]
+    if: always() && needs.apk.result == 'success' # « precedentes » peut être sauté
     runs-on: ubuntu-latest
     steps:
       - name: Ne garder que les versions listées
         env:
           V: ${{ needs.apk.outputs.v }}
           PREV: ${{ needs.apk.outputs.prev }}
+          ARCH: ${{ needs.apk.outputs.arch }}
         run: |
-          KEEP="t900d-$V.apk $(echo "$PREV" | jq -r '.[].name | "t900d-\(.).apk"' | tr '\n' ' ')"
+          KEEP="t900d-$V.apk $(echo "$PREV" | jq -r '.[].name | "t900d-\(.).apk"' | tr '\n' ' ') $(echo "$ARCH" | jq -r '.[] | "t900d-\(.).apk"' | tr '\n' ' ')"
           for a in $(gh release view apk -R "$R" --json assets -q '.assets[].name'); do
             case " $KEEP " in *" $a "*) ;; *) gh release delete-asset apk "$a" -R "$R" -y ;; esac
           done

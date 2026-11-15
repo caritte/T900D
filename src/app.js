@@ -237,12 +237,12 @@ function openPrefs() {
   $('goal-date').min = new Date(Date.now() + 9 * 864e5).toLocaleDateString('sv');
   $('goal-info').textContent = g ? `Avec ta VMA de ${fr(vma)} km/h : allure visée ≈ ${fr(g.kmh)} km/h (${fmt(3600 / g.kmh)} /km), temps visé ≈ ${fmt(g.seconds)}. Le plan s'organise jusqu'à la course : base, phase spécifique, puis une semaine d'affûtage.`
     : 'Choisis une distance et une date (au moins 9 jours à l\'avance) : le plan guidé s\'organise autour.';
-  $('aaps-status').textContent = !native ? '' : 'Glycémie et IOB : recherche des données AAPS…';
+  // Ligne AAPS : affichée seulement si ce téléphone a déjà reçu des données d'AAPS.
+  $('aaps-status').hidden = true;
   if (native) native.aapsStatus().then((a) => {
     const g = glucoseView(a);
-    $('aaps-status').textContent = g
-      ? `Glycémie et IOB : dernière donnée AAPS reçue à ${new Date(a.receivedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} (${g.bg} ${g.unit}, IOB ${g.iob ?? '-'} U).`
-      : 'Glycémie et IOB : aucune donnée reçue d\'AAPS. Dans AAPS, active le plugin « Samsung Tizen » (Générateur de configuration → Synchronisation).';
+    $('aaps-status').hidden = !g;
+    if (g) $('aaps-status').textContent = `Glycémie et IOB : dernière donnée AAPS reçue le ${new Date(a.receivedAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })} (${g.bg} ${g.unit}, IOB ${g.iob ?? '-'} U).`;
   });
   const bk = pref('backup', null);
   $('p-autobk').checked = autoBk; $('p-autobk').disabled = !native;
