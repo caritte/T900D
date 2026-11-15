@@ -33,13 +33,18 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug -PversionCode=${{ github.run_number }} -PversionLabel=${{ steps.ver.outputs.v }} --no-daemon
       - run: cp android/app/build/outputs/apk/debug/app-debug.apk t900d-${{ steps.ver.outputs.v }}.apk
-      - uses: softprops/action-gh-release@v2
-        with:
-          tag_name: apk
-          name: T900D ${{ steps.ver.outputs.v }} (build ${{ github.run_number }})
-          body: "Le numéro le plus élevé est la dernière version, l'autre est la version précédente, pour revenir en arrière. Ouvre le fichier sur le téléphone pour l'installer par-dessus l'appli : les données sont conservées."
-          files: t900d-${{ steps.ver.outputs.v }}.apk
-          make_latest: true
+      # gh plutôt qu'une action tierce : l'envoi du fichier ne dépend pas de la mise à jour du titre,
+      # que GitHub refuse parfois au jeton du workflow (« Resource not accessible by integration »).
+      - name: Publie
+        env:
+          GH_TOKEN: ${{ github.token }}
+          R: ${{ github.repository }}
+          V: ${{ steps.ver.outputs.v }}
+        run: |
+          NOTES="Le numéro le plus élevé est la dernière version, l'autre est la version précédente, pour revenir en arrière. Ouvre le fichier sur le téléphone pour l'installer par-dessus l'appli : les données sont conservées."
+          gh release view apk -R "$R" >/dev/null 2>&1 || gh release create apk -R "$R" --title "T900D" --notes "$NOTES" --target "${{ github.sha }}"
+          gh release upload apk "t900d-$V.apk" -R "$R" --clobber
+          gh release edit apk -R "$R" --title "T900D $V (build ${{ github.run_number }})" --notes "$NOTES" --latest || echo "::warning::Titre de la release non mis à jour"
 
   precedente:
     needs: apk # même release : on évite deux mises à jour simultanées
@@ -63,10 +68,10 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug -PversionCode=${{ github.run_number }} --no-daemon
       - run: cp android/app/build/outputs/apk/debug/app-debug.apk t900d-${{ steps.ref.outputs.p }}.apk
-      - uses: softprops/action-gh-release@v2
-        with:
-          tag_name: apk
-          files: t900d-${{ steps.ref.outputs.p }}.apk
+      - name: Publie
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload apk "t900d-${{ steps.ref.outputs.p }}.apk" -R ${{ github.repository }} --clobber
       - name: Ne garder que ces deux fichiers
         env:
           GH_TOKEN: ${{ github.token }}
