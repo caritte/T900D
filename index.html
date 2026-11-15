@@ -18,6 +18,7 @@
 </header>
 
 <main id="home" class="view">
+  <section id="today" class="card today"></section>
   <div id="week" class="metrics"></div>
   <h3>Entraînements</h3>
   <div id="tiles-train" class="tiles"></div>
@@ -39,6 +40,17 @@
     <section class="card">
       <div class="ctl"><span>Ma VMA <b id="vma" class="sp"></b></span><span><button data-v="-0.5">−</button><button data-v="0.5">+</button></span></div>
       <p class="muted">Vitesse maximale tenable environ 6 minutes. Les vitesses des programmes en sont déduites. Repères : débutant 9–11, intermédiaire 12–14, confirmé 15 et plus. Pour la mesurer : catégorie Test.</p>
+    </section>
+    <section class="card">
+      <div class="ctl"><span>FC max <b id="hrmax" class="hr"></b></span><span><button data-h="-5">−5</button><button data-h="-1">−</button><button data-h="1">+</button><button data-h="5">+5</button></span></div>
+      <p class="muted">Sert à calculer tes zones cardiaques. Repère si tu ne la connais pas : 220 − ton âge.</p>
+      <div id="zones-ref" class="zones"></div>
+      <div class="ctl"><span>Alerte vocale FC</span><select id="hralert"><option value="0">Aucune</option><option value="2">Au-dessus de Z2</option><option value="3">Au-dessus de Z3</option><option value="4">Au-dessus de Z4</option></select></div>
+    </section>
+    <section class="card">
+      <div class="ctl"><span>Plan guidé</span><select id="plan-level"><option value="0">Aucun</option><option value="1">Débutant</option><option value="2">Intermédiaire</option><option value="3">Confirmé</option></select></div>
+      <p class="muted">Le plan propose la « séance du jour » sur l'accueil et avance quand tu la termines en entier.</p>
+      <div class="acts"><button id="plan-reset" class="ghost">Recommencer le plan au début</button></div>
     </section>
     <section class="card">
       <p><label><input type="checkbox" id="p-beep"> Bips avant les changements d'étape</label></p>
@@ -92,7 +104,7 @@
       <div class="metrics">
         <div><b id="m-speed" class="sp">-</b><small>km/h</small></div>
         <div><b id="m-incline" class="in">-</b><small>% pente</small></div>
-        <div><b id="m-hr" class="hr">-</b><small>bpm</small></div>
+        <div><b id="m-hr" class="hr">-</b><small id="m-hrl">bpm</small></div>
         <div><b id="m-dist">-</b><small>km</small></div>
         <div><b id="m-time">-</b><small>temps</small></div>
         <div><b id="m-kcal">-</b><small>kcal</small></div>
@@ -130,7 +142,30 @@
       <svg id="chart-sess" class="chart tall"></svg>
       <p class="muted"><span style="color:var(--in)">■</span> pente · <span style="color:var(--sp)">▬</span> vitesse · <span style="color:var(--bad)">▬</span> fréquence cardiaque</p>
     </div>
-    <div id="s-stats" class="metrics"></div>
+    <div><div id="s-stats" class="metrics"></div><div id="s-zones" class="zones"></div></div>
+  </div>
+</main>
+<main id="prog" class="view" hidden>
+  <div class="head"><button data-back class="ghost sm">‹</button><h2>Progression</h2></div>
+  <div class="grid">
+    <section class="card">
+      <div class="ctl"><b>Volume par semaine</b></div>
+      <div id="g-metric" class="chips"></div>
+      <svg id="chart-week" class="plot"></svg>
+    </section>
+    <section class="card">
+      <div class="ctl"><b>Indice cardio</b></div>
+      <p class="muted">Vitesse moyenne pour 100 battements, sur les phases courues. Il monte quand tu cours plus vite à fréquence cardiaque égale : c'est le signe que ton cardio progresse. Comparer des séances du même type.</p>
+      <svg id="chart-cardio" class="plot"></svg>
+    </section>
+    <section class="card">
+      <div class="ctl"><b>VMA</b></div>
+      <svg id="chart-vma" class="plot"></svg>
+    </section>
+    <section class="card">
+      <div class="ctl"><b>Records</b></div>
+      <div id="g-records" class="records"></div>
+    </section>
   </div>
 </main>
 <script type="module" src="src/app.js"></script>

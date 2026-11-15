@@ -93,3 +93,60 @@ export function drawSession(svg, samples) {
   const y = (v) => g.m.t + g.ph * (1 - clamp((v - 40) / 160, 0, 1));
   el('path', { d: hr.map((s, i) => `${i ? 'L' : 'M'}${g.xOf(s[0])} ${y(s[3])}`).join(''), fill: 'none', stroke: '#ef4444', 'stroke-width': 2 }, svg);
 }
+
+// ---------- Graphes de progression (une seule série chacun) ----------
+const INK = '#eef1f6', SURFACE = '#161a22';
+const niceMax = (v) => { const p = 10 ** Math.floor(Math.log10(v || 1)); return Math.ceil((v || 1) / p * 2) / 2 * p; };
+
+// Cadre commun : grille discrète, graduations, et une ligne de lecture en haut mise à jour au survol / au toucher.
+function frame(svg, lo, hi, fmt) {
+  const W = svg.clientWidth || 320, H = svg.clientHeight || 180, m = { l: 34, r: 12, t: 24, b: 20 };
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.replaceChildren();
+  const pw = W - m.l - m.r, ph = H - m.t - m.b, y = (v) => m.t + ph * (1 - (v - lo) / (hi - lo || 1));
+  for (const v of [lo, (lo + hi) / 2, hi]) {
+    el('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: C.grid }, svg);
+    el('text', { x: m.l - 5, y: y(v) + 4, 'text-anchor': 'end', fill: C.text, 'font-size': 10 }, svg).textContent = fmt(v);
+  }
+  const tip = el('text', { x: m.l, y: 13, fill: INK, 'font-size': 12, 'font-weight': 600 }, svg);
+  return { W, H, m, pw, ph, y, tip };
+}
+const xLabel = (svg, f, x, text) => { el('text', { x, y: f.H - 5, 'text-anchor': 'middle', fill: C.text, 'font-size': 10 }, svg).textContent = text; };
+// Rend un repère actif (lecture + mise en avant) au survol et au toucher.
+function activate(marks, f, items, on) {
+  const set = (i) => { f.tip.textContent = items[i].tip; marks.forEach((mk, j) => on(mk, j === i)); };
+  marks.forEach((mk, i) => { for (const ev of ['pointerenter', 'pointerdown']) mk.hit.addEventListener(ev, () => set(i)); });
+  set(items.length - 1);
+}
+
+// Barres : items = [{ label, value, tip }]. Barres fines, sommet arrondi, base sur l'axe.
+export function drawBars(svg, items, { color = C.incline, fmt = (v) => v } = {}) {
+  const f = frame(svg, 0, niceMax(Math.max(...items.map((i) => i.value))), fmt);
+  const slot = f.pw / items.length, bw = Math.max(3, Math.min(26, slot - 2)), base = f.m.t + f.ph, every = Math.ceil(items.length / 6);
+  const marks = items.map((it, i) => {
+    const cx = f.m.l + slot * (i + 0.5), top = f.y(it.value), h = base - top, r = Math.min(4, h, bw / 2);
+    const bar = el('path', { d: `M${cx - bw / 2} ${base}V${top + r}q0 ${-r} ${r} ${-r}h${bw - 2 * r}q${r} 0 ${r} ${r}V${base}z`, fill: color }, svg);
+    if ((items.length - 1 - i) % every === 0) xLabel(svg, f, cx, it.label);
+    return { bar, hit: el('rect', { x: cx - slot / 2, y: f.m.t, width: slot, height: f.ph, fill: 'transparent' }, svg) };
+  });
+  activate(marks, f, items, (mk, on) => mk.bar.setAttribute('opacity', on ? 1 : 0.55));
+}
+
+// Courbe : pts = [{ t, v, tip }] triés par date. Ligne de 2 px, points cerclés de la couleur du fond.
+export function drawLine(svg, pts, { color = C.speed, fmt = (v) => v } = {}) {
+  if (pts.length < 2) {
+    svg.replaceChildren(); svg.setAttribute('viewBox', '0 0 320 60');
+    el('text', { x: 160, y: 34, 'text-anchor': 'middle', fill: C.text, 'font-size': 12 }, svg).textContent = pts.length ? `Une seule mesure pour l'instant : ${pts[0].tip}` : 'Pas encore de données';
+    return;
+  }
+  const vs = pts.map((p) => p.v), pad = (Math.max(...vs) - Math.min(...vs)) * 0.15 || 0.5;
+  const f = frame(svg, Math.min(...vs) - pad, Math.max(...vs) + pad, fmt);
+  const t0 = pts[0].t, span = pts.at(-1).t - t0 || 1, x = (t) => f.m.l + 6 + (f.pw - 12) * (t - t0) / span;
+  el('path', { d: pts.map((p, i) => `${i ? 'L' : 'M'}${x(p.t)} ${f.y(p.v)}`).join(''), fill: 'none', stroke: color, 'stroke-width': 2, 'stroke-linejoin': 'round' }, svg);
+  const day = (t) => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  xLabel(svg, f, x(t0) + 10, day(t0)); xLabel(svg, f, x(pts.at(-1).t) - 10, day(pts.at(-1).t));
+  const marks = pts.map((p) => ({
+    dot: el('circle', { cx: x(p.t), cy: f.y(p.v), r: 4, fill: color, stroke: SURFACE, 'stroke-width': 2 }, svg),
+    hit: el('circle', { cx: x(p.t), cy: f.y(p.v), r: 16, fill: 'transparent' }, svg),
+  }));
+  activate(marks, f, pts, (mk, on) => mk.dot.setAttribute('r', on ? 6 : 4));
+}

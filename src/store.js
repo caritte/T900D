@@ -17,5 +17,8 @@ export const loadWorkouts = () => get(`workouts:${cur}`, []).filter((w) => Array
 export const saveWorkouts = (l) => set(`workouts:${cur}`, l);
 export const loadFavs = () => get(`favs:${cur}`, []);
 export const saveFavs = (l) => set(`favs:${cur}`, l);
+// Réglages divers de l'utilisateur (FC max, alerte FC, plan guidé, historique de VMA…).
+export const pref = (k, d) => get(`${k}:${cur}`, d);
+export const setPref = (k, v) => set(`${k}:${cur}`, v);
 export const loadVma = () => +localStorage[`vma:${cur}`] || 11;
 export const saveVma = (v) => { localStorage[`vma:${cur}`] = v; };

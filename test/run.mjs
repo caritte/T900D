@@ -50,4 +50,30 @@ for (const vma of [7, 11, 22]) for (const p of PROGRAMS) {
   assert.ok(st.every((s) => s.speed >= 1 && s.speed <= 18 && s.incline >= 0 && s.incline <= 10 && s.duration >= 10), p.id);
 }
 if (process.argv[2] === 'list') for (const p of PROGRAMS) console.log(p.level, p.cat.padEnd(16), p.name.padEnd(36), Math.round(totalDuration(parseWorkout(p.text, 11)) / 60) + ' min');
+
+// Zones FC, indice cardio, plan, progression
+const { zoneOf, zoneTimes, cardioIndex } = await import('../src/hr.js');
+assert.deepEqual([100, 115, 135, 155, 175, 0].map((h) => zoneOf(h, 190)), [0, 1, 2, 3, 4, -1]);
+assert.deepEqual(zoneTimes([[5, 8, 0, 120], [10, 8, 0, 140], [15, 8, 0, 0]], 190), [0, 5, 5, 0, 0]);
+assert.equal(cardioIndex(Array.from({ length: 12 }, (_, i) => [i * 5, 10, 0, 150])), 6.67);
+assert.equal(cardioIndex([[5, 10, 0, 150]]), null);
+const { PLANS, planProgram, advance, advice } = await import('../src/plan.js');
+for (const pl of Object.values(PLANS)) for (const id of [...pl.intro, ...pl.loop]) assert.ok(PROGRAMS.some((p) => p.id === id), id);
+let st = { level: 1, idx: 0 };
+assert.equal(planProgram(st).id, 'rf1');
+st = advance(advance(advance(st, 'rf1'), 'fr1'), 'rf1'); // la séance hors plan ne compte pas
+assert.equal(planProgram(st).id, 'rf2');
+assert.equal(planProgram({ level: 1, idx: 14 }).id, 'en1');
+assert.equal(planProgram({ level: 2, idx: 12 }).id, 'en2');
+const H = 36e5, T0 = 1e12, sess = (ago, programId) => ({ start: T0 - ago * H - 1800e3, duration: 1800, programId });
+const frac = PROGRAMS.find((p) => p.id === 'fr4'), foot = PROGRAMS.find((p) => p.id === 'en2');
+assert.match(advice([sess(5, 'en2')], foot, T0), /16 heures/);
+assert.match(advice([sess(30, 'fr4')], frac, T0), /intense/);
+assert.equal(advice([sess(30, 'fr4')], foot, T0), null);
+assert.equal(advice([sess(50, 'fr4')], frac, T0), null);
+const { weekly, records } = await import('../src/progress.js');
+const now = new Date(2026, 10, 18, 12).getTime(); // mercredi
+const wk = weekly([{ start: now - 864e5, distance: 5000, duration: 1800 }, { start: now - 8 * 864e5, distance: 3000, duration: 1200 }], 4, now);
+assert.deepEqual(wk.map((w) => +w.km.toFixed(1)), [0, 0, 3, 5]);
+assert.equal(records([{ start: now, distance: 5000, duration: 1800, avgSpeed: 10, maxSpeed: 12, ascent: 5 }]).week.km, 5);
 console.log('OK');

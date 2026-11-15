@@ -2,8 +2,11 @@ import { Treadmill } from './ftms.js';
 import { DemoTreadmill } from './demo.js';
 import { WorkoutRunner, stats, parseWorkout } from './workout.js';
 import { PROGRAMS, CATS, LEVELS, CAT_INFO } from './programs.js';
-import { drawChart, drawSession, LIMITS } from './chart.js';
-import { loadWorkouts, saveWorkouts, uid, currentUser, loadVma, saveVma, loadFavs, saveFavs, LEGACY_USER } from './store.js';
+import { drawChart, drawSession, drawBars, drawLine, LIMITS } from './chart.js';
+import { loadWorkouts, saveWorkouts, uid, currentUser, loadVma, saveVma, loadFavs, saveFavs, pref, setPref, LEGACY_USER } from './store.js';
+import { ZONES, ZONE_COLORS, zoneOf, zoneTimes } from './hr.js';
+import { planProgram, planProgress, advance, advice } from './plan.js';
+import { weekly, cardioSeries, records } from './progress.js';
 import { Recorder } from './recorder.js';
 import { putSession, allSessions, delSession } from './db.js';
 import { beep, say, unlock } from './audio.js';
@@ -39,6 +42,8 @@ function onData(d) {
   $('m-speed').textContent = d.speed ?? '-';
   $('m-incline').textContent = d.incline ?? '-';
   $('m-hr').textContent = d.hr || '-';
+  const z = zoneOf(d.hr, hrMax);
+  $('m-hrl').innerHTML = z < 0 ? 'bpm' : `<i class="zdot" style="background:${ZONE_COLORS[z]}"></i>bpm · ${ZONES[z].name}`;
 }
 async function ensureConnected(quiet = false) {
   if (tm?.connected) return true;
@@ -69,7 +74,7 @@ $('disconnect').onclick = () => {
 
 // ---------- Navigation ----------
 // Chaque écran ouvert ajoute une entrée d'historique : le bouton Retour d'Android remonte d'un niveau.
-const views = ['home', 'cat', 'prefs', 'edit', 'run', 'hist', 'sess'];
+const views = ['home', 'cat', 'prefs', 'edit', 'run', 'hist', 'sess', 'prog'];
 let current = 'home', popping = false, homing = false;
 function show(v) {
   views.forEach((x) => { $(x).hidden = x !== v; });
@@ -78,7 +83,7 @@ function show(v) {
 }
 // Où mène « retour » depuis chaque écran. Renvoyer false annule (séance en cours non confirmée).
 const backFns = {
-  cat: () => renderHome(), prefs: () => renderHome(), hist: () => renderHome(),
+  cat: () => renderHome(), prefs: () => renderHome(), hist: () => renderHome(), prog: () => renderHome(),
   sess: () => openHist(), edit: () => backToList(), run: () => leaveRun(),
 };
 addEventListener('popstate', async () => {
@@ -93,6 +98,9 @@ document.querySelectorAll('[data-back]').forEach((b) => { b.onclick = () => hist
 // ---------- Accueil et catégories ----------
 let workouts = loadWorkouts(), vma = loadVma();
 let favs = loadFavs(); // identifiants des programmes intégrés mis en favoris
+let hrMax = pref('hrmax', 185), hrAlert = pref('hralert', 0); // hrAlert : alerte au-dessus de la zone n (0 = aucune)
+let plan = pref('plan', null); // plan guidé : { level, idx } ou null
+const setPlan = (p) => { plan = p; setPref('plan', p); };
 const mySessions = () => allSessions(currentUser(), LEGACY_USER);
 let cat = null, level = 0; // catégorie ouverte ('mine' = mes séances), filtre de niveau
 
@@ -112,12 +120,36 @@ function renderHome() {
   tile($('tiles-train'), '⭐', 'Mes séances', `${favs.length} favori${favs.length > 1 ? 's' : ''} · ${workouts.length} perso`, '#f472b6', () => openCat('mine'));
   tile($('tiles-train'), '🎛️', 'Course libre', 'Pilotage manuel', '#94a3b8', () => openRun(null));
   tile($('tiles-more'), '📊', 'Historique', 'Séances et stats', '#4c8dff', () => openHist());
-  tile($('tiles-more'), '⚙️', 'Réglages', `VMA ${vma} km/h`, '#94a3b8', () => { show('prefs'); $('vma').textContent = vma + ' km/h'; });
+  tile($('tiles-more'), '📈', 'Progression', 'Courbes et records', '#2fd27a', () => openProg());
+  tile($('tiles-more'), '⚙️', 'Réglages', `VMA ${vma} km/h`, '#94a3b8', () => openPrefs());
   mySessions().then((all) => {
+    renderToday(all);
     const wk = all.filter((x) => x.start >= Date.now() - 7 * 864e5), sum = (k) => wk.reduce((a, x) => a + x[k], 0);
     $('week').innerHTML = cell(wk.length, 'séances · 7 j') + cell((sum('distance') / 1000).toFixed(1), 'km · 7 j') + cell(fmt(sum('duration')), 'temps · 7 j');
   });
 }
+// Séance du jour proposée par le plan guidé.
+let todayW = null;
+function renderToday(all) {
+  const box = $('today');
+  if (!plan?.level) {
+    box.innerHTML = '<h3>Séance du jour</h3><p class="muted">Choisis ton niveau : l\'appli te proposera la prochaine séance à chaque fois.</p><div class="acts">' +
+      [1, 2, 3].map((l) => `<button class="ghost" data-l="${l}">${LEVELS[l]}</button>`).join('') + '</div>';
+    return;
+  }
+  const p = planProgram(plan), note = advice(all, p);
+  todayW = { ...p, steps: parseWorkout(p.text, vma) };
+  box.innerHTML = `<div class="top"><h3>Séance du jour</h3><span class="badge l${p.level}">${LEVELS[p.level]}</span></div>
+    <b>${CAT_INFO[p.cat].icon} ${esc(p.name)}</b><div class="muted">${planProgress(plan)} · ${summary(todayW.steps)}</div>
+    ${note ? `<div class="note">⚠ ${note}</div>` : ''}
+    <div class="acts"><button class="primary" data-a="run">▶ Lancer</button><button class="ghost" data-a="skip">Passer</button></div>`;
+}
+$('today').onclick = (e) => {
+  const d = e.target.dataset;
+  if (d.l) { setPlan({ level: +d.l, idx: 0 }); renderHome(); }
+  if (d.a === 'run') openRun(todayW);
+  if (d.a === 'skip') { setPlan({ ...plan, idx: plan.idx + 1 }); renderHome(); }
+};
 // Carte d'une séance. builtin : programme intégré (non supprimable, « Personnaliser » en fait une copie).
 function addCard(parent, w, builtin) {
   const c = document.createElement('div');
@@ -165,13 +197,34 @@ function renderCat() {
   list.filter((p) => !level || p.level === level).forEach((p) => addCard($('c-list'), { ...p, steps: parseWorkout(p.text, vma) }, true));
 }
 const backToList = () => (cat ? renderCat() : renderHome());
+// ---------- Réglages ----------
+function openPrefs() {
+  show('prefs');
+  $('vma').textContent = vma + ' km/h'; $('hrmax').textContent = hrMax + ' bpm';
+  $('hralert').value = hrAlert; $('plan-level').value = plan?.level || 0;
+  const lo = (i) => Math.round(ZONES[i].from * hrMax);
+  const range = (i) => (i === 0 ? `< ${lo(1)}` : i === 4 ? `${lo(4)} et +` : `${lo(i)}–${lo(i + 1) - 1}`);
+  $('zones-ref').innerHTML = ZONES.map((z, i) =>
+    `<div class="z"><span><i class="zdot" style="background:${ZONE_COLORS[i]}"></i>${z.name} ${z.label}</span><span></span><span>${range(i)} bpm</span></div>`).join('');
+}
 $('prefs').addEventListener('click', (e) => {
-  const d = e.target.dataset.v; if (!d) return;
-  vma = clamp(vma + +d, 7, 22); saveVma(vma); $('vma').textContent = vma + ' km/h';
+  const { v, h } = e.target.dataset;
+  if (v) {
+    vma = clamp(vma + +v, 7, 22); saveVma(vma);
+    // Historique de la VMA pour la courbe de progression : une valeur par jour.
+    const log = pref('vmalog', []), day = new Date().toDateString();
+    if (log.length && new Date(log.at(-1).t).toDateString() === day) log.pop();
+    log.push({ t: Date.now(), v: vma }); setPref('vmalog', log);
+  }
+  if (h) { hrMax = clamp(hrMax + +h, 120, 220); setPref('hrmax', hrMax); }
+  if (v || h) openPrefs();
 });
+$('hralert').onchange = (e) => { hrAlert = +e.target.value; setPref('hralert', hrAlert); };
+$('plan-level').onchange = (e) => { const l = +e.target.value; setPlan(l ? { level: l, idx: plan?.level === l ? plan.idx : 0 } : null); };
+$('plan-reset').onclick = () => { if (plan && confirm('Recommencer le plan au début ?')) setPlan({ ...plan, idx: 0 }); };
 $('new').onclick = () => openEdit(null);
 $('export').onclick = async () => {
-  const json = JSON.stringify({ workouts, vma, sessions: await mySessions() });
+  const json = JSON.stringify({ workouts, vma, favs, hrMax, hrAlert, plan, vmalog: pref('vmalog', []), sessions: await mySessions() });
   if (native) return native.shareFile('t900d-sauvegarde.json', json).catch((e) => alert('Export impossible : ' + e.message));
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
@@ -184,7 +237,13 @@ $('file').onchange = async (e) => {
     const list = Array.isArray(data) ? data : data.workouts ?? [];
     workouts.push(...list.filter((w) => w.name && Array.isArray(w.steps)).map((w) => ({ ...w, id: uid() })));
     for (const x of data.sessions ?? []) if (x.id && x.start) await putSession({ ...x, user: currentUser() });
-    if (data.vma) { vma = clamp(+data.vma, 7, 22); saveVma(vma); $('vma').textContent = vma + ' km/h'; }
+    if (data.vma) { vma = clamp(+data.vma, 7, 22); saveVma(vma); }
+    if (Array.isArray(data.favs)) { favs = [...new Set([...favs, ...data.favs])]; saveFavs(favs); }
+    if (data.hrMax) { hrMax = clamp(+data.hrMax, 120, 220); setPref('hrmax', hrMax); }
+    if (data.hrAlert != null) { hrAlert = +data.hrAlert; setPref('hralert', hrAlert); }
+    if (data.plan) setPlan(data.plan);
+    if (Array.isArray(data.vmalog) && data.vmalog.length) setPref('vmalog', data.vmalog);
+    openPrefs();
     saveWorkouts(workouts); alert('Import terminé');
   } catch { alert('Fichier invalide'); }
 };
@@ -209,7 +268,7 @@ function renderEdit() {
   $('e-inc').textContent = s.incline + ' %';
   $('e-stats').textContent = summary(ed.steps);
 }
-window.addEventListener('resize', () => { if (!$('edit').hidden) renderEdit(); if (!$('run').hidden) drawRun(); if (!$('sess').hidden) drawSession($('chart-sess'), sess.samples); });
+window.addEventListener('resize', () => { if (!$('edit').hidden) renderEdit(); if (!$('run').hidden) drawRun(); if (!$('sess').hidden) drawSession($('chart-sess'), sess.samples); if (!$('prog').hidden) renderProg(); });
 $('edit').addEventListener('click', (e) => {
   const a = e.target.dataset.a; if (!a) return;
   const s = ed.steps[ed.sel], [k, v] = a.split(':');
@@ -289,6 +348,12 @@ setInterval(() => {
   if (run?.state !== 'running' || !run.rec) return;
   run.rec.tick(live); showRec();
   if (!run.w) drawRun();
+  // Alerte FC : au-dessus de la limite pendant 15 s, rappel au plus une fois par minute.
+  const lim = hrAlert && ZONES[hrAlert].from * hrMax;
+  if (lim && live.hr >= lim) {
+    run.over = (run.over || 0) + 1;
+    if (run.over >= 15 && Date.now() - (run.alertAt || 0) > 60000) { run.alertAt = Date.now(); speak(`Fréquence cardiaque ${live.hr}, au-dessus de la zone ${hrAlert}. Ralentis.`); }
+  } else run.over = 0;
 }, 1000);
 
 function onTick(s) {
@@ -320,10 +385,12 @@ function resync() {
   } else { run.runner?.pause(); setBtns('paused'); speak('Tapis à l\'arrêt, séance en pause'); }
 }
 async function finishRun(completed) {
-  const rec = run.rec;
+  const rec = run.rec, w = run.w, programId = w?.cat ? w.id : undefined; // programme intégré uniquement
   run.runner?.pause(); run.runner = null; run.snap = null; run.rec = null; run.cue = {};
   allowSleep(); setBtns('idle'); $('r-now').hidden = true;
-  if (rec && rec.t > 10) await putSession({ ...rec.summary(completed), user: currentUser() });
+  if (rec && rec.t > 10) await putSession({ ...rec.summary(completed), user: currentUser(), programId });
+  // Le plan n'avance que si la séance a vraiment été faite (pas en sautant les étapes).
+  if (completed && programId && plan && rec.t >= 0.8 * stats(w.steps).duration) setPlan(advance(plan, programId));
   drawRun();
   $('r-info').textContent = rec && rec.t > 10
     ? `${completed ? 'Séance terminée 🎉' : 'Séance arrêtée'} · ${fmt(rec.t)} · ${(rec.dist / 1000).toFixed(2)} km — enregistrée dans l'historique`
@@ -417,6 +484,41 @@ function openSess(x) {
   $('s-stats').innerHTML = cell(fmt(x.duration), 'durée') + cell(km(x.distance), 'km') + cell(x.kcal || '-', 'kcal') +
     cell(x.avgSpeed, 'km/h moy.', 'sp') + cell(x.maxSpeed, 'km/h max', 'sp') + cell(pace(x.avgSpeed), 'allure /km') +
     cell(x.ascent, 'm D+', 'in') + cell(x.hrAvg || '-', 'bpm moy.', 'hr') + cell(x.hrMax || '-', 'bpm max', 'hr');
+  const zt = zoneTimes(x.samples || [], hrMax), tot = zt.reduce((a, b) => a + b, 0);
+  $('s-zones').innerHTML = !tot ? '' : `<div class="muted">Temps par zone cardiaque (FC max ${hrMax} bpm)</div>` + ZONES.map((z, i) =>
+    `<div class="z"><span><i class="zdot" style="background:${ZONE_COLORS[i]}"></i>${z.name} ${z.label}</span>
+     <div class="track"><div class="fill" style="width:${zt[i] / tot * 100}%;background:${ZONE_COLORS[i]};${zt[i] ? '' : 'min-width:0'}"></div></div>
+     <span>${fmt(zt[i])} · ${Math.round(zt[i] / tot * 100)} %</span></div>`).join('');
+}
+
+// ---------- Progression ----------
+const METRICS = {
+  km: ['Kilomètres', (w) => +w.km.toFixed(1), (v) => `${v} km`],
+  duration: ['Temps', (w) => Math.round(w.duration / 60), (v) => `${v} min`],
+  count: ['Séances', (w) => w.count, (v) => `${v} séance${v > 1 ? 's' : ''}`],
+};
+let metric = 'km';
+async function openProg() { sessions = await mySessions(); show('prog'); renderProg(); }
+function renderProg() {
+  $('g-metric').replaceChildren();
+  for (const k in METRICS) {
+    const b = document.createElement('button');
+    b.textContent = METRICS[k][0]; b.classList.toggle('on', k === metric);
+    b.onclick = () => { metric = k; renderProg(); };
+    $('g-metric').appendChild(b);
+  }
+  const [, val, txt] = METRICS[metric], day = (t) => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  drawBars($('chart-week'), weekly(sessions, 12).map((w) => ({ label: w.label, value: val(w), tip: `Semaine du ${w.label} : ${txt(val(w))}` })),
+    { color: '#4c8dff', fmt: (v) => +v.toFixed(1) });
+  drawLine($('chart-cardio'), cardioSeries(sessions).map((p) => ({ ...p, tip: `${day(p.t)} : ${p.v} km/h pour 100 bpm` })), { color: '#ff5a5f', fmt: (v) => v.toFixed(1) });
+  drawLine($('chart-vma'), pref('vmalog', [{ t: Date.now(), v: vma }]).map((p) => ({ ...p, tip: `${day(p.t)} : VMA ${p.v} km/h` })), { color: '#ffb020', fmt: (v) => v.toFixed(1) });
+  const r = records(sessions), row = (label, s, value) => (s ? `<span>${label}</span><b>${value} <small>${day(s.start)}</small></b>` : '');
+  $('g-records').innerHTML = (row('Plus longue séance', r.duration, r.duration && fmt(r.duration.duration)) +
+    row('Plus longue distance', r.distance, r.distance && km(r.distance.distance) + ' km') +
+    row('Meilleure vitesse moyenne (10 min et plus)', r.avgSpeed, r.avgSpeed && r.avgSpeed.avgSpeed + ' km/h') +
+    row('Vitesse maximale', r.maxSpeed, r.maxSpeed && r.maxSpeed.maxSpeed + ' km/h') +
+    row('Plus gros dénivelé', r.ascent, r.ascent && r.ascent.ascent + ' m') +
+    row('Meilleure semaine', r.week, r.week && r.week.km.toFixed(1) + ' km')) || '<span>Aucune séance enregistrée.</span>';
 }
 $('s-del').onclick = async () => { if (confirm('Supprimer cette séance de l\'historique ?')) { await delSession(sess.id); history.back(); } };
 
