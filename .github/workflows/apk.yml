@@ -10,6 +10,10 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
+# Un seul build à la fois : deux builds simultanés se disputent la même release.
+concurrency:
+  group: apk
+  cancel-in-progress: false
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -29,7 +33,6 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: apk
-          target_commitish: ${{ github.sha }}
           name: T900D – APK Android (build ${{ github.run_number }})
           body: "`t900d.apk` : dernière version. `t900d-precedente.apk` : version précédente validée, pour revenir en arrière. Ouvre le fichier sur le téléphone pour l'installer par-dessus l'appli, les données sont conservées."
           files: t900d.apk
