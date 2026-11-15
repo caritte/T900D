@@ -38,7 +38,9 @@ Règle de conception : toute la logique testable vit dans des modules purs (pas 
 - L'APK s'affiche bord à bord : les marges des barres système passent par `--safe-area-inset-*` (voir le haut de `style.css`).
 - Les téléphones Samsung bloquent l'installation tant que le « Bloqueur automatique » est actif.
 
-Non vérifié sur l'appareil à la date de la v3 : la caractéristique FTMS « Statut » (le départ depuis la console est aussi détecté par le passage de la vitesse de 0 à plus de 0), la sauvegarde automatique dans `Documents/T900D`, la reconnexion après une vraie coupure.
+- La sauvegarde automatique dans `Documents/T900D` fonctionne, et la réception de la glycémie et de l'IOB d'AAPS aussi.
+
+Non vérifié sur l'appareil : la caractéristique FTMS « Statut » (le départ depuis la console est aussi détecté par le passage de la vitesse de 0 à plus de 0), la reconnexion après une vraie coupure.
 
 ## Glycémie et IOB (AAPS)
 
@@ -59,7 +61,7 @@ Depuis la v4, un réglage permet d'enregistrer chaque séance terminée dans Hea
 - Sur Android 14+, les permissions santé se demandent comme des permissions ordinaires (annotation `@Permission` de Capacitor). Le manifeste doit garder les quatre `android.permission.health.WRITE_*` **et** l'`activity-alias` `VIEW_PERMISSION_USAGE` / `HEALTH_PERMISSIONS`, sans lequel la permission ne peut pas être accordée.
 - Chaque enregistrement porte un identifiant client (`t900d-<début>-<type>`) : renvoyer une séance la remplace au lieu de la dupliquer.
 - Vérification locale possible de `HealthWriter.java` seul : `javac` contre `org.robolectric:android-all` (API 34) de Maven Central. Le reste ne se compile que sur GitHub Actions.
-- Non vérifié sur l'appareil au moment de l'ajout : la demande de permission, l'écriture réelle, et ce que Samsung Health reprend.
+- Vérifié sur le téléphone de l'utilisateur : la permission est accordée et l'écriture réussit (4 éléments pour une séance avec FC). Non vérifié : ce que Samsung Health reprend ensuite.
 
 ## Contraintes techniques à ne pas redécouvrir
 
