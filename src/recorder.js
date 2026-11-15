@@ -33,3 +33,10 @@ export class Recorder {
     };
   }
 }
+
+// Séance au format attendu par le plugin Health Connect : instants en ms, FC à plat [t0, bpm0, t1, bpm1, …].
+// La fin est le début plus la durée active : les pauses ne sont pas comptées, comme dans les courbes.
+export const healthPayload = (x) => ({
+  start: x.start, end: x.start + x.duration * 1000, title: x.name, distance: x.distance, kcal: x.kcal || 0,
+  hr: (x.samples || []).filter((p) => p[3] > 0).flatMap((p) => [x.start + p[0] * 1000, p[3]]),
+});

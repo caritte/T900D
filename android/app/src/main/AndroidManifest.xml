@@ -24,6 +24,19 @@
 
         </activity>
 
+        <!-- Health Connect (Android 14+) exige une activité qui explique l'usage des données santé :
+             sans elle, la permission ne peut pas être accordée. Elle ouvre simplement l'appli. -->
+        <activity-alias
+            android:name="ViewPermissionUsageActivity"
+            android:exported="true"
+            android:targetActivity=".MainActivity"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
+
         <!-- Glycémie et IOB diffusés par AAPS (plugin « Samsung Tizen »). -->
         <receiver android:name=".AapsReceiver" android:exported="true">
             <intent-filter>
@@ -53,6 +66,11 @@
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
+    <!-- Enregistrement des séances dans Health Connect (écriture seule). -->
+    <uses-permission android:name="android.permission.health.WRITE_EXERCISE" />
+    <uses-permission android:name="android.permission.health.WRITE_DISTANCE" />
+    <uses-permission android:name="android.permission.health.WRITE_HEART_RATE" />
+    <uses-permission android:name="android.permission.health.WRITE_TOTAL_CALORIES_BURNED" />
     <!-- Sauvegarde automatique dans Documents/T900D (permission demandée par Android 10 et antérieurs uniquement). -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />

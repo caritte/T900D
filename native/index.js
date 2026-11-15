@@ -73,3 +73,11 @@ export async function saveBackup(name, text) {
 // Dernier état diffusé par AAPS (glycémie, IOB), reçu côté Android par AapsReceiver.
 const Aaps = registerPlugin('Aaps');
 export const aapsStatus = () => Aaps.getStatus().catch(() => ({ available: false }));
+
+// Health Connect : enregistrement des séances (Android 14+). status/request → { available, granted }.
+const Health = registerPlugin('Health');
+export const health = {
+  status: () => Health.status().catch(() => ({ available: false, granted: false })),
+  request: () => Health.request(),
+  save: (session) => Health.saveSession(session),
+};

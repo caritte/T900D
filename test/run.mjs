@@ -143,4 +143,9 @@ const zw = zonesByWeek([mk(1, 140), mk(8, 100)], 190, 3, A0);
 assert.deepEqual(zw.map((w) => w.zones.reduce((a, b) => a + b, 0)), [0, 840, 840]);
 assert.deepEqual(intensitySplit(zw.slice(2)), { easy: 0, moderate: 79, hard: 21 });
 assert.equal(intensitySplit(zw.slice(0, 1)), null);
+
+// Health Connect
+const { healthPayload } = await import('../src/recorder.js');
+assert.deepEqual(healthPayload({ start: 1000, duration: 20, name: 'S', distance: 50, kcal: 0, samples: [[5, 8, 0, 120], [10, 8, 0, 0], [15, 8, 0, 125]] }),
+  { start: 1000, end: 21000, title: 'S', distance: 50, kcal: 0, hr: [6000, 120, 16000, 125] });
 console.log('OK');

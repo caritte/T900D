@@ -51,6 +51,16 @@ Depuis la v4, l'écran de course peut afficher la glycémie et l'insuline active
 - Test en simulation : `?demo=1&aaps=1`. La réception réelle ne peut être vérifiée que sur le téléphone.
 - Ne rien écrire dans ce dépôt public sur la santé de l'utilisateur.
 
+## Health Connect
+
+Depuis la v4, un réglage permet d'enregistrer chaque séance terminée dans Health Connect, d'où Samsung Health peut la récupérer.
+
+- Écriture seule, avec l'**API intégrée à Android 14+** (`android.health.connect`, utilisable en Java) : pas de dépendance Jetpack ni de Kotlin. `HealthWriter.java` n'est chargé qu'à partir de l'API 34 ; `HealthPlugin.java` fait le pont. Avant Android 14, le réglage n'est pas affiché.
+- Sur Android 14+, les permissions santé se demandent comme des permissions ordinaires (annotation `@Permission` de Capacitor). Le manifeste doit garder les quatre `android.permission.health.WRITE_*` **et** l'`activity-alias` `VIEW_PERMISSION_USAGE` / `HEALTH_PERMISSIONS`, sans lequel la permission ne peut pas être accordée.
+- Chaque enregistrement porte un identifiant client (`t900d-<début>-<type>`) : renvoyer une séance la remplace au lieu de la dupliquer.
+- Vérification locale possible de `HealthWriter.java` seul : `javac` contre `org.robolectric:android-all` (API 34) de Maven Central. Le reste ne se compile que sur GitHub Actions.
+- Non vérifié sur l'appareil au moment de l'ajout : la demande de permission, l'écriture réelle, et ce que Samsung Health reprend.
+
 ## Contraintes techniques à ne pas redécouvrir
 
 - La **WebView Android n'a ni Web Bluetooth, ni synthèse vocale, ni Wake Lock, ni téléchargement de fichier**. D'où `native/index.js` ; `app.js` teste `native` avant chaque usage. La version web (GitHub Pages, Chrome) reste fonctionnelle avec les API du navigateur.

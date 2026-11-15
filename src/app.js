@@ -9,7 +9,7 @@ import { planToday, advance, advice, goalActive, goalTarget, GOALS } from './pla
 import { weekly, cardioSeries, records } from './progress.js';
 import { glucoseView } from './glucose.js';
 import { PERIODS, hrBySpeed, recoverySeries, zonesByWeek, intensitySplit } from './analysis.js';
-import { Recorder } from './recorder.js';
+import { Recorder, healthPayload } from './recorder.js';
 import { putSession, allSessions, delSession } from './db.js';
 import { beep, say, unlock } from './audio.js';
 
@@ -171,7 +171,7 @@ $('resume').onclick = async (e) => {
   if (!a || !r) return;
   if (a === 'go') return openRun(r.w, r);
   if (a === 'drop' && !confirm('Abandonner cette séance sans l\'enregistrer ?')) return;
-  if (a === 'save') { await putSession({ ...Recorder.restore(r.rec).summary(false), user: currentUser(), programId: r.w?.cat ? r.w.id : undefined }); autoBackup(); }
+  if (a === 'save') { const done = { ...Recorder.restore(r.rec).summary(false), user: currentUser(), programId: r.w?.cat ? r.w.id : undefined }; await putSession(done); autoBackup(); healthSave(done); }
   setPref('resume', null); renderHome();
 };
 $('today').onclick = (e) => {
@@ -246,6 +246,7 @@ function openPrefs() {
     $('aaps-status').hidden = !g;
     if (g) $('aaps-status').textContent = `Glycémie et IOB : dernière donnée AAPS reçue le ${new Date(a.receivedAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })} (${g.bg} ${g.unit}, IOB ${g.iob ?? '-'} U).`;
   });
+  renderHealth();
   const bk = pref('backup', null);
   $('p-autobk').checked = autoBk; $('p-autobk').disabled = !native;
   $('bk-status').textContent = !native ? 'Disponible uniquement dans l\'appli Android.'
@@ -282,6 +283,34 @@ $('goal-km').onchange = $('goal-date').onchange = setGoal;
 let autoBk = localStorage.autobk !== '0';
 $('p-autobk').onchange = (e) => { autoBk = e.target.checked; localStorage.autobk = autoBk ? '1' : '0'; };
 const backupJson = async () => JSON.stringify({ workouts, vma, favs, hrMax, hrAlert, plan, vmalog: pref('vmalog', []), sessions: await mySessions() });
+// ---------- Health Connect ----------
+// Une séance = exercice « course sur tapis » + distance + calories + courbe de FC. Écriture seule, APK sur Android 14+.
+let hcOn = localStorage.hc === '1';
+async function healthSave(x) {
+  if (!native || !hcOn) return;
+  try { const r = await native.health.save(healthPayload(x)); setPref('health', { at: Date.now(), ok: `${x.name} (${r.records} éléments)` }); }
+  catch (e) { setPref('health', { at: Date.now(), error: e.message }); }
+}
+async function renderHealth() {
+  const st = native ? await native.health.status() : { available: false };
+  $('hc-row').hidden = $('hc-status').hidden = !st.available; // ligne absente sur le web et avant Android 14
+  if (!st.available) { $('hc-acts').hidden = true; return; }
+  if (hcOn && !st.granted) { hcOn = false; localStorage.hc = '0'; } // permission retirée dans les réglages Android
+  $('p-hc').checked = hcOn; $('hc-acts').hidden = !hcOn;
+  const h = pref('health', null), when = h && new Date(h.at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+  $('hc-status').textContent = !hcOn ? 'Chaque séance terminée sera ajoutée à Health Connect, d\'où Samsung Health peut la récupérer.'
+    : !h ? 'Activé. Rien n\'a encore été envoyé.' : h.error ? `Dernier envoi échoué le ${when} : ${h.error}` : `Dernier envoi réussi le ${when} : ${h.ok}`;
+}
+$('p-hc').onchange = async (e) => {
+  if (e.target.checked) { const st = await native.health.request().catch(() => ({ granted: false })); hcOn = !!st.granted; if (!hcOn) alert('Permission refusée : rien ne sera envoyé à Health Connect.'); }
+  else hcOn = false;
+  localStorage.hc = hcOn ? '1' : '0'; renderHealth();
+};
+$('hc-test').onclick = async () => {
+  const last = (await mySessions()).sort((a, b) => b.start - a.start)[0];
+  if (!last) return alert('Aucune séance dans l\'historique.');
+  await healthSave(last); renderHealth();
+};
 // Écrit la sauvegarde dans Documents/T900D après chaque séance (appli Android uniquement).
 async function autoBackup() {
   if (!native || !autoBk) return;
@@ -524,7 +553,7 @@ async function finishRun(completed) {
   setPref('resume', null);
   run.runner?.pause(); run.runner = null; run.snap = null; run.rec = null; run.cue = {};
   allowSleep(); setBtns('idle'); $('r-now').hidden = true;
-  if (rec && rec.t > 10) { await putSession({ ...rec.summary(completed), user: currentUser(), programId }); autoBackup(); }
+  if (rec && rec.t > 10) { const done = { ...rec.summary(completed), user: currentUser(), programId }; await putSession(done); autoBackup(); healthSave(done); }
   // Le plan n'avance que si la séance a vraiment été faite (pas en sautant les étapes).
   if (completed && programId && plan && rec.t >= 0.8 * stats(steps).duration) setPlan(advance(plan, programId));
   drawRun();
