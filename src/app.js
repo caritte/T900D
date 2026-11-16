@@ -171,7 +171,7 @@ $('resume').onclick = async (e) => {
   if (!a || !r) return;
   if (a === 'go') return openRun(r.w, r);
   if (a === 'drop' && !confirm('Abandonner cette séance sans l\'enregistrer ?')) return;
-  if (a === 'save') { const done = { ...Recorder.restore(r.rec).summary(false), user: currentUser(), programId: r.w?.cat ? r.w.id : undefined }; await putSession(done); autoBackup(); healthSave(done); }
+  if (a === 'save') { const done = { ...Recorder.restore(r.rec).summary(false), user: currentUser(), programId: r.w?.cat ? r.w.id : undefined }; await putSession(done); autoBackup(); healthSync(); }
   setPref('resume', null); renderHome();
 };
 $('today').onclick = (e) => {
@@ -286,20 +286,48 @@ const backupJson = async () => JSON.stringify({ workouts, vma, favs, hrMax, hrAl
 // ---------- Health Connect ----------
 // Une séance = exercice « course sur tapis » + distance + calories + courbe de FC. Écriture seule, APK sur Android 14+.
 let hcOn = localStorage.hc === '1';
+const HC_RETRY_DAYS = 14;
+// Envoie une séance. Réussie, elle est marquée (hcSent) pour ne pas être renvoyée ; l'échec est gardé à part
+// (healthErr) afin que sa cause reste visible dans Réglages même après un envoi réussi.
 async function healthSave(x) {
-  if (!native || !hcOn) return;
-  try { const r = await native.health.save(healthPayload(x)); setPref('health', { at: Date.now(), ok: `${x.name} (${r.records} éléments)` }); }
-  catch (e) { setPref('health', { at: Date.now(), error: e.message }); }
+  if (!native || !hcOn) return false;
+  const when = new Date(x.start).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+  try {
+    const r = await native.health.save(healthPayload(x));
+    await putSession({ ...x, hcSent: Date.now() });
+    setPref('health', { at: Date.now(), ok: `${x.name} (${r.records} éléments)` });
+    log(`Health Connect : « ${x.name} » du ${when} envoyée (${r.records} éléments)`);
+    return true;
+  } catch (e) {
+    setPref('health', { at: Date.now(), error: e.message });
+    setPref('healthErr', { at: Date.now(), name: `${x.name} du ${when}`, error: e.message });
+    log(`Health Connect : échec pour « ${x.name} » du ${when} : ${e.message}`);
+    return false;
+  }
 }
+// Séances récentes pas encore envoyées avec succès.
+const healthPending = async () => (await mySessions()).filter((x) => !x.hcSent && x.start > Date.now() - HC_RETRY_DAYS * 864e5).sort((a, b) => a.start - b.start);
+// Envoi automatique : après chaque séance et à l'ouverture de l'appli, on (ré)essaie tout ce qui est en attente.
+// Un échec ponctuel est ainsi rattrapé tout seul à l'occasion suivante.
+let hcBusy = false;
+async function healthSync() {
+  if (!native || !hcOn || hcBusy) return;
+  hcBusy = true;
+  try { for (const x of await healthPending()) await healthSave(x); } finally { hcBusy = false; }
+}
+setTimeout(healthSync, 4000);
 async function renderHealth() {
   const st = native ? await native.health.status() : { available: false };
   $('hc-row').hidden = $('hc-status').hidden = !st.available; // ligne absente sur le web et avant Android 14
   if (!st.available) { $('hc-acts').hidden = true; return; }
   if (hcOn && !st.granted) { hcOn = false; localStorage.hc = '0'; } // permission retirée dans les réglages Android
   $('p-hc').checked = hcOn; $('hc-acts').hidden = !hcOn;
-  const h = pref('health', null), when = h && new Date(h.at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+  const fmtAt = (t) => new Date(t).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+  const h = pref('health', null), err = pref('healthErr', null), waiting = hcOn ? (await healthPending()).length : 0;
   $('hc-status').textContent = !hcOn ? 'Chaque séance terminée sera ajoutée à Health Connect, d\'où Samsung Health peut la récupérer.'
-    : !h ? 'Activé. Rien n\'a encore été envoyé.' : h.error ? `Dernier envoi échoué le ${when} : ${h.error}` : `Dernier envoi réussi le ${when} : ${h.ok}`;
+    : (!h ? 'Activé. Rien n\'a encore été envoyé.' : h.error ? `Dernier envoi échoué le ${fmtAt(h.at)} : ${h.error}` : `Dernier envoi réussi le ${fmtAt(h.at)} : ${h.ok}`)
+      + (waiting ? ` · ${waiting} séance${waiting > 1 ? 's' : ''} en attente, renvoi automatique au prochain lancement.` : '')
+      + (err && !h?.error ? ` · Dernier échec le ${fmtAt(err.at)} (${err.name}) : ${err.error}` : '');
 }
 $('p-hc').onchange = async (e) => {
   if (e.target.checked) { const st = await native.health.request().catch(() => ({ granted: false })); hcOn = !!st.granted; if (!hcOn) alert('Permission refusée : rien ne sera envoyé à Health Connect.'); }
@@ -315,7 +343,7 @@ $('hc-all').onclick = async () => {
   $('hc-all').disabled = true;
   for (const [i, x] of all.entries()) {
     $('hc-status').textContent = `Envoi ${i + 1}/${all.length}…`;
-    try { await native.health.save(healthPayload(x)); ok++; } catch (e) { lastError = e.message; }
+    if (await healthSave(x)) ok++; else lastError = pref('health', {}).error || 'envoi refusé';
   }
   $('hc-all').disabled = false;
   setPref('health', lastError ? { at: Date.now(), error: `${ok}/${all.length} séances envoyées. Dernière erreur : ${lastError}` } : { at: Date.now(), ok: `${ok} séances de l'historique` });
@@ -568,7 +596,7 @@ async function finishRun(completed) {
   setPref('resume', null);
   run.runner?.pause(); run.runner = null; run.snap = null; run.rec = null; run.cue = {};
   allowSleep(); setBtns('idle'); $('r-now').hidden = true;
-  if (rec && rec.t > 10) { const done = { ...rec.summary(completed), user: currentUser(), programId }; await putSession(done); autoBackup(); healthSave(done); }
+  if (rec && rec.t > 10) { const done = { ...rec.summary(completed), user: currentUser(), programId }; await putSession(done); autoBackup(); healthSync(); }
   // Le plan n'avance que si la séance a vraiment été faite (pas en sautant les étapes).
   if (completed && programId && plan && rec.t >= 0.8 * stats(steps).duration) setPlan(advance(plan, programId));
   drawRun();

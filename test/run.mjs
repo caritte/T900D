@@ -148,4 +148,5 @@ assert.equal(intensitySplit(zw.slice(0, 1)), null);
 const { healthPayload } = await import('../src/recorder.js');
 assert.deepEqual(healthPayload({ start: 1000, duration: 20, name: 'S', distance: 50, kcal: 0, samples: [[5, 8, 0, 120], [10, 8, 0, 0], [15, 8, 0, 125]] }),
   { start: 1000, end: 21000, title: 'S', distance: 50, kcal: 0, hr: [6000, 120, 16000, 125] });
+assert.deepEqual(healthPayload({ start: 0, duration: 10, name: 'S', distance: 1, samples: [[5, 8, 0, 120], [10, 8, 0, 130]] }).hr, [5000, 120]); // point sur la borne de fin écarté
 console.log('OK');
