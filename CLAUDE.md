@@ -10,6 +10,27 @@ L'utilisateur n'est pas développeur : il teste sur son téléphone et son tapis
 - Contenu de la v4 : 32 programmes par catégorie et niveau, éditeur graphique de séances (étapes en durée ou en distance), plan guidé avec objectif de course, intensité réglable, affichage géant, reprise d'une séance interrompue, zones cardiaques et alerte vocale, historique, écrans Progression et Analyse, sauvegarde automatique, envoi vers Health Connect, affichage de la glycémie et de l'IOB d'AAPS.
 - Notices : une par version dans `docs/`, la v4 est à jour à la date de ce fichier.
 - L'appli est installée sur plusieurs téléphones de la famille ; un seul reçoit les données d'AAPS.
+- **Règle de travail** : quand l'utilisateur demande de chercher la cause d'un problème, analyser et proposer, sans modifier l'appli tant qu'il ne l'a pas demandé explicitement.
+
+## Travail en cours (à reprendre en priorité)
+
+**L'envoi automatique vers Health Connect en fin de séance ne semble pas fonctionner.** L'envoi par bouton et le rattrapage au lancement de l'appli marchent.
+
+Constaté le 18/11 :
+- Réglages affichait « Dernier envoi réussi le 18/11 19:28 : Reprise 1 (4 éléments) », sans « Dernier échec » ni « séances en attente ». La sauvegarde automatique datait de 19:25:40, sans doute l'heure de fin de séance.
+- Samsung Health n'affichait aucun exercice le 18 (capture à 19:32).
+
+Questions posées à l'utilisateur, sans réponse au moment de cette mise à jour :
+1. A-t-il touché un bouton d'envoi vers 19:28 ? Si oui, l'envoi automatique de 19:25 n'est probablement pas parti.
+2. La séance du 18 figure-t-elle dans Santé Connect → Données et accès → Activité → Exercice, avec T900D comme source ? Si oui, le problème est côté Samsung Health (import), pas T900D.
+3. Que disent les lignes « Health Connect : … » du Journal Bluetooth (perdues si l'appli a été fermée) ?
+
+Analyse du code (`src/app.js` : `healthSave`, `healthSync`, `healthPending`, et l'appel dans `finishRun`) : la fin de séance appelle le même code que le bouton, aucun bug évident. Faiblesses repérées, **non corrigées** en attendant le feu vert de l'utilisateur :
+- `healthSync` est protégé par `hcBusy` : si un appel natif ne répond jamais, `hcBusy` reste vrai et tous les envois automatiques suivants sont ignorés sans message jusqu'au redémarrage. Le bouton contourne ce verrou. Hypothèse compatible avec « le bouton marche, l'automatique non », non prouvée.
+- La ligne d'état ne dit pas si l'envoi était automatique ou manuel, ni la date de la séance envoyée.
+- Les tentatives automatiques ne sont tracées que dans le Journal, qui disparaît à la fermeture.
+
+Corrections proposées : délai maximal sur l'appel natif qui libère le verrou, origine et date de la séance dans la ligne d'état, historique persistant des envois. À faire seulement quand l'utilisateur le demande.
 
 ## Architecture
 
@@ -68,7 +89,9 @@ Depuis la v4, un réglage permet d'enregistrer chaque séance terminée dans Hea
 - Sur Android 14+, les permissions santé se demandent comme des permissions ordinaires (annotation `@Permission` de Capacitor). Le manifeste doit garder les quatre `android.permission.health.WRITE_*` **et** l'`activity-alias` `VIEW_PERMISSION_USAGE` / `HEALTH_PERMISSIONS`, sans lequel la permission ne peut pas être accordée.
 - Chaque enregistrement porte un identifiant client (`t900d-<début>-<type>`) : renvoyer une séance la remplace au lieu de la dupliquer.
 - L'envoi est une **file d'attente** : une séance réussie est marquée `hcSent` dans IndexedDB ; après chaque séance et 4 s après l'ouverture de l'appli, `healthSync()` renvoie toutes les séances non marquées des 14 derniers jours. Le dernier échec est gardé à part (`healthErr`) et affiché dans Réglages et dans le Journal.
-- **Point ouvert** : le premier envoi automatique, à la fin d'une séance allée au bout d'elle-même, n'est pas arrivé alors que l'envoi par le bouton marchait ; la cause n'a pas été identifiée (le message d'erreur a été écrasé). Hypothèse traitée sans preuve : un point de FC exactement sur l'instant de fin, désormais écarté. Si ça se reproduit, demander la ligne « Dernier échec » de Réglages.
+- **Point ouvert** (voir « Travail en cours ») : l'envoi automatique en fin de séance a semblé échouer le 16/11 puis le 18/11. Le 16, le message d'erreur a été écrasé par un envoi manuel. Mesure prise depuis, sans preuve qu'elle visait la bonne cause : les points de FC situés exactement sur l'instant de fin sont écartés (`healthPayload` dans `src/recorder.js`).
+- Samsung Health fusionne une séance T900D avec un autre enregistrement qui la chevauche (autre appli ou objet connecté) : elle apparaît alors sous « Course » avec un badge « +1 », et non sous « Tapis de course ».
+- Pour un autre téléphone de la famille, tout est à refaire sur place : cocher la case dans T900D, vérifier dans Santé Connect les 4 autorisations d'écriture de T900D et la lecture de l'exercice par Samsung Health, puis « Envoyer tout l'historique ».
 - Vérification locale possible de `HealthWriter.java` seul : `javac` contre `org.robolectric:android-all` (API 34) de Maven Central. Le reste ne se compile que sur GitHub Actions.
 - Vérifié sur le téléphone de l'utilisateur : la permission est accordée et l'écriture réussit (4 éléments pour une séance avec FC). Samsung Health importe la séance comme « Tapis de course » avec durée, distance, calories, FC moyenne et maximale, et la courbe de FC (il calcule ses propres zones).
 
